@@ -1,0 +1,17 @@
+[package]
+name = "doh-client"
+version = "1.0.0"
+authors = ["link.ted@mailbox.org"]
+
+[dependencies]
+clap = "2.32.0"
+dns-parser = "0.8.0"
+tokio = "0.1.11"
+tokio-rustls = "0.8.0"
+futures = "0.1.25"
+h2 = "0.1.13"
+http = "0.1.13"
+rustls = "0.14.0"
+webpki = "0.18.1"
+bytes = "0.4.10"
+
