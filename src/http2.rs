@@ -46,11 +46,11 @@ pub fn connect_http2_server(runtime: &mut Runtime, remote_addr: SocketAddr, clie
         let result = runtime.block_on(Http2ConnectionFuture::new(remote_addr, client_config.clone(), domain.clone()));
         match result {
             Ok((send_request, connection)) => {
-                runtime.spawn(connection.map_err(|e| eprintln!("H2 connection error: {}", e)));
+                runtime.spawn(connection.map_err(|e| error!("H2 connection error: {}", e)));
                 return Ok(send_request);
             },
             Err(e) => {
-                eprintln!("Connection to remote server {} ({}) failed: {}: retry: {}", remote_addr, domain, e, x);
+                error!("Connection to remote server {} ({}) failed: {}: retry: {}", remote_addr, domain, e, x);
             }
         }
 
@@ -171,7 +171,7 @@ impl Future for Http2ResponseFuture {
                                     let (header, body) = response.into_parts();
 
                                     if header.status != 200 {
-                                        eprintln!("Http2ResponseFuture: GetResponse: header.status != 200");
+                                        error!("Http2ResponseFuture: GetResponse: header.status != 200");
                                         return Err(())
                                     }
 
@@ -181,7 +181,7 @@ impl Future for Http2ResponseFuture {
                             }
                         },
                         Err(e) => {
-                            eprintln!("Http2ResponseFuture: GetResponse: {}", e);
+                            error!("Http2ResponseFuture: GetResponse: {}", e);
                             return Err(());
                         }
                     }
@@ -209,7 +209,7 @@ impl Future for Http2ResponseFuture {
 
                                                 },
                                                 Err(e) => {
-                                                    eprintln!("Http2ResponseFuture: GetBody: release_capacity: {}", e);
+                                                    error!("Http2ResponseFuture: GetBody: release_capacity: {}", e);
                                                 }
                                             }
                                         } else {
@@ -219,7 +219,7 @@ impl Future for Http2ResponseFuture {
 
                                                 },
                                                 Err(e) => {
-                                                    eprintln!("Http2ResponseFuture: GetBody: unbounded_send: {}", e);
+                                                    error!("Http2ResponseFuture: GetBody: unbounded_send: {}", e);
                                                     return Err(());
                                                 }
                                             }
@@ -230,7 +230,7 @@ impl Future for Http2ResponseFuture {
                                 }
                             },
                             Err(e) => {
-                                eprintln!("Http2ResponseFuture: GetBody: {}", e);
+                                error!("Http2ResponseFuture: GetBody: {}", e);
                                 return Err(());
                             }
                         }

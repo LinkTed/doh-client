@@ -1,11 +1,18 @@
+extern crate log;
 #[macro_use]
 extern crate clap;
 extern crate doh_client;
 
 
+use log::{set_max_level, set_logger, LevelFilter};
 use clap::{Arg, App};
 use doh_client::{Config, run};
+use doh_client::logger::Logger;
 use std::net::SocketAddr;
+use std::process::exit;
+
+
+static LOGGER: Logger = Logger{};
 
 
 fn main() {
@@ -45,6 +52,10 @@ fn main() {
             .value_name("FILE")
             .help("The path to the pem file, which contains the trusted CA certificates")
             .required(true))
+        .arg(Arg::with_name("v")
+            .short("v")
+            .multiple(true)
+            .help("Sets the level of verbosity"))
         .get_matches();
 
     let listen_addr: SocketAddr = matches.value_of("listen-addr").unwrap().parse().unwrap();
@@ -52,6 +63,19 @@ fn main() {
     let domain = matches.value_of("domain").unwrap();
     let cafile = matches.value_of("cafile").unwrap();
     let retries: u16 = value_t!(matches, "retries", u16).unwrap_or(3);
+
+    if let Err(e) = set_logger(&LOGGER) {
+        eprintln!("Could not set logger: {}", e);
+        exit(1);
+    }
+
+    match matches.occurrences_of("v") {
+        0 => set_max_level(LevelFilter::Error),
+        1 => set_max_level(LevelFilter::Warn),
+        2 => set_max_level(LevelFilter::Info),
+        3 => set_max_level(LevelFilter::Debug),
+        4 | _ => set_max_level(LevelFilter::Trace),
+    }
 
     run(Config::new(listen_addr, remote_addr, domain, cafile, retries));
 }
