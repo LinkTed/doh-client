@@ -91,6 +91,9 @@ impl Future for Http2ConnectionFuture {
                         Ok(async) => {
                             match async {
                                 Async::Ready(tcp) => {
+                                    if let Err(e) = tcp.set_keepalive(Some(Duration::from_secs(1))) {
+                                        error!("Could not set keepalive on TCP: {}", e);
+                                    }
                                     GetTlsConnection(self.tls_connector.connect(DNSNameRef::try_from_ascii_str(&self.domain).unwrap(), tcp))
                                 },
                                 Async::NotReady => return Ok(Async::NotReady),
@@ -205,19 +208,14 @@ impl Future for Http2ResponseFuture {
                                             }
 
                                             match stream.release_capacity().release_capacity(b_len) {
-                                                Ok(()) => {
+                                                Ok(()) => {},
+                                                Err(e) => error!("Http2ResponseFuture: GetBody: release_capacity: {}", e)
 
-                                                },
-                                                Err(e) => {
-                                                    error!("Http2ResponseFuture: GetBody: release_capacity: {}", e);
-                                                }
                                             }
                                         } else {
                                             let sender = self.sender.lock().unwrap();
                                             match sender.unbounded_send((self.buffer.clone(), self.addr)) {
-                                                Ok(()) => {
-
-                                                },
+                                                Ok(()) => {},
                                                 Err(e) => {
                                                     error!("Http2ResponseFuture: GetBody: unbounded_send: {}", e);
                                                     return Err(());
