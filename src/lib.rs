@@ -18,20 +18,17 @@ use std::io::{Error, ErrorKind};
 use std::sync::{Arc, Mutex};
 
 use http::Request;
-use bytes::Bytes;
 
 use rustls::ClientConfig;
 
 use futures::sync::mpsc::unbounded;
-use futures::Sink;
-use futures::Stream;
-use futures::Future;
+use futures::{Sink, Stream, Future};
 
 use tokio::runtime::Runtime;
 
 
 mod dns;
-use dns::DnsCodec;
+use dns::{DnsPacket, DnsCodec};
 
 mod http2;
 use http2::{create_config, connect_http2_server, Http2ResponseFuture};
@@ -73,7 +70,7 @@ pub fn run(config: Config) {
                 exit(1);
             }
         };
-        let (sender, receiver) = unbounded::<(Bytes, SocketAddr)>();
+        let (sender, receiver) = unbounded::<(DnsPacket, SocketAddr)>();
         let sender = Arc::new(Mutex::new(sender));
         runtime.spawn(
             dns_sink.send_all(receiver
@@ -89,24 +86,26 @@ pub fn run(config: Config) {
             info!("Connection was successfully established to remote server {} ({})", config.remote_addr, config.domain);
             let executor = runtime.executor();
             let dns_queries = dns_stream.for_each(move |(msg, addr)| {
-                let body = msg.freeze();
+                //let body = msg.freeze();
 
-                debug!("Received UDP packet from {}", addr);
+                let tid = msg.get_tid();
+
+                debug!("Received UDP packet from {} {:#?}", addr, tid);
 
                 let request = Request::builder()
                     .method("POST")
                     .uri("https://cloudflare-dns.com/dns-query")
                     .header("accept", "application/dns-message")
                     .header("content-type", "application/dns-message")
-                    .header("content-length", body.len().to_string())
+                    .header("content-length", msg.len().to_string())
                     .body(())
                     .unwrap();
 
                 match send_request.send_request(request, false) {
                     Ok((response, mut request)) => {
-                        match request.send_data(body, true) {
+                        match request.send_data(msg.get_without_tid(), true) {
                             Ok(()) => {
-                                executor.spawn(Http2ResponseFuture::new(response, sender.clone(), addr));
+                                executor.spawn(Http2ResponseFuture::new(response, sender.clone(), addr, tid));
                                 return Ok(());
                             },
                             Err(e) => {

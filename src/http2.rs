@@ -23,6 +23,8 @@ use h2::RecvStream;
 
 use bytes::Bytes;
 
+use dns::DnsPacket;
+
 
 const ALPN_H2: &str = "h2";
 
@@ -146,14 +148,15 @@ enum Http2ResponseState {
 
 pub struct Http2ResponseFuture {
     state: Http2ResponseState,
-    sender: Arc<Mutex<UnboundedSender<(Bytes, SocketAddr)>>>,
+    sender: Arc<Mutex<UnboundedSender<(DnsPacket, SocketAddr)>>>,
     addr: SocketAddr,
     buffer: Bytes,
+    tid: [u8;2],
 }
 
 impl Http2ResponseFuture {
-    pub fn new(response_future: ResponseFuture, sender: Arc<Mutex<UnboundedSender<(Bytes, SocketAddr)>>>, addr: SocketAddr) -> Http2ResponseFuture {
-        Http2ResponseFuture {state: Http2ResponseState::GetResponse(response_future) ,sender, addr, buffer: Bytes::new()}
+    pub fn new(response_future: ResponseFuture, sender: Arc<Mutex<UnboundedSender<(DnsPacket, SocketAddr)>>>, addr: SocketAddr, tid: [u8;2]) -> Http2ResponseFuture {
+        Http2ResponseFuture {state: Http2ResponseState::GetResponse(response_future) ,sender, addr, buffer: Bytes::new(), tid}
     }
 }
 
@@ -214,7 +217,9 @@ impl Future for Http2ResponseFuture {
                                             }
                                         } else {
                                             let sender = self.sender.lock().unwrap();
-                                            match sender.unbounded_send((self.buffer.clone(), self.addr)) {
+                                            let dns = DnsPacket::from_tid(self.buffer.clone(), self.tid.clone());
+
+                                            match sender.unbounded_send((dns, self.addr)) {
                                                 Ok(()) => {},
                                                 Err(e) => {
                                                     error!("Http2ResponseFuture: GetBody: unbounded_send: {}", e);

@@ -14,6 +14,52 @@ use bytes::{Bytes, BytesMut};
 #[derive(Debug)]
 pub struct DnsCodec;
 
+pub struct DnsPacket {
+    data: Bytes,
+    tid: [u8;2],
+}
+
+impl DnsPacket {
+    pub fn from(buffer: Bytes) -> DnsPacket {
+        let mut tid: [u8;2] = [0;2];
+        tid.copy_from_slice(&buffer[0..2]);
+        DnsPacket{data: buffer, tid}
+    }
+
+    pub fn from_tid(buffer: Bytes, tid: [u8;2]) -> DnsPacket {
+        let mut buffer = BytesMut::from(buffer);
+        buffer[0] = tid[0];
+        buffer[1] = tid[1];
+
+        DnsPacket{data: buffer.freeze(), tid}
+    }
+
+//    fn parser(buffer: Bytes) -> DnsPacket {
+//
+//    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn get_tid(&self) -> [u8;2] {
+        self.tid.clone()
+    }
+
+    pub fn get_without_tid(&self) -> Bytes {
+        let mut data: BytesMut = BytesMut::with_capacity(self.data.len());
+        data.extend(self.data.iter());
+        data[0] = b'\0';
+        data[1] = b'\0';
+
+        data.freeze()
+    }
+
+    pub fn get(&self) -> Bytes {
+        self.data.clone()
+    }
+}
+
 impl DnsCodec {
     pub fn new(listen_addr: SocketAddr) -> Result<(SplitSink<UdpFramed<DnsCodec>>, SplitStream<UdpFramed<DnsCodec>>), Error> {
         return match UdpSocket::bind(&listen_addr) {
@@ -24,13 +70,12 @@ impl DnsCodec {
 }
 
 impl Decoder for DnsCodec {
-    type Item = BytesMut;
+    type Item = DnsPacket;
     type Error = io::Error;
 
-    fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<BytesMut>, io::Error> {
+    fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<DnsPacket>, io::Error> {
         if buf.len() > 0 {
-            let len = buf.len();
-            Ok(Some(buf.split_to(len)))
+            Ok(Some(DnsPacket::from(buf.clone().freeze())))
         } else {
             Ok(None)
         }
@@ -38,12 +83,14 @@ impl Decoder for DnsCodec {
 }
 
 impl Encoder for DnsCodec {
-    type Item = Bytes;
+    type Item = DnsPacket;
     type Error = io::Error;
 
-    fn encode(&mut self, data: Bytes, buf: &mut BytesMut) -> Result<(), io::Error> {
+    fn encode(&mut self, data: DnsPacket, buf: &mut BytesMut) -> Result<(), io::Error> {
+        buf.clear();
         buf.reserve(data.len());
-        buf.extend(data);
+        let b: Bytes = data.get();
+        buf.extend(b);
         Ok(())
     }
 }
