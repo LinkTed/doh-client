@@ -181,6 +181,19 @@ impl Future for Http2ResponseFuture {
                                         return Err(())
                                     }
 
+                                    match header.headers.get("content-type") {
+                                        Some(value) => {
+                                            if value != "application/dns-message" {
+                                                error!("Http2ResponseFuture: GetResponse: content-type != application/dns-message");
+                                                return Err(())
+                                            }
+                                        }
+                                        None => {
+                                            error!("Http2ResponseFuture: GetResponse: content-type is None");
+                                            return Err(())
+                                        }
+                                    }
+
                                     GetBody(body)
                                 },
                                 Async::NotReady => return Ok(Async::NotReady),
