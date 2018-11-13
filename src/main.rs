@@ -5,9 +5,12 @@ extern crate doh_client;
 
 
 use log::{set_max_level, set_logger, LevelFilter};
+
 use clap::{Arg, App};
+
 use doh_client::{Config, run};
 use doh_client::logger::Logger;
+
 use std::net::SocketAddr;
 use std::process::exit;
 

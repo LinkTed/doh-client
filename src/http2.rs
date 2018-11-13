@@ -230,15 +230,24 @@ impl Future for Http2ResponseFuture {
                                             }
                                         } else {
                                             let sender = self.sender.lock().unwrap();
-                                            let dns = DnsPacket::from_tid(self.buffer.clone(), self.tid.clone());
 
-                                            match sender.unbounded_send((dns, self.addr)) {
-                                                Ok(()) => {},
-                                                Err(e) => {
-                                                    error!("Http2ResponseFuture: GetBody: unbounded_send: {}", e);
-                                                    return Err(());
-                                                }
+                                            match DnsPacket::from_tid(self.buffer.clone(), self.tid.clone()) {
+                                                Ok(dns) => {
+                                                    if dns.is_response() {
+                                                        match sender.unbounded_send((dns, self.addr)) {
+                                                            Ok(()) => {},
+                                                            Err(e) => {
+                                                                error!("Http2ResponseFuture: GetBody: unbounded_send: {}", e);
+                                                                return Err(());
+                                                            }
+                                                        }
+                                                    } else {
+                                                        error!("Http2ResponseFuture: GetBody: get a non DNS response")
+                                                    }
+                                                },
+                                                Err(e) => error!("Http2ResponseFuture: GetBody: DNS parser error: {}", e)
                                             }
+
                                             return Ok(Async::Ready(()));
                                         }
                                     },
