@@ -6,13 +6,13 @@ authors = ["link.ted@mailbox.org"]
 [dependencies]
 log = "0.4.6"
 clap = "2.32.0"
-dns-parser = "0.8.0"
-tokio = "0.1.11"
+tokio = "0.1.13"
 tokio-rustls = "0.8.0"
 futures = "0.1.25"
-h2 = "0.1.13"
-http = "0.1.13"
+futures-locks = "0.3.0"
+h2 = "0.1.14"
+http = "0.1.14"
 rustls = "0.14.0"
 webpki = "0.18.1"
-bytes = "0.4.10"
+bytes = "0.4.11"
 
