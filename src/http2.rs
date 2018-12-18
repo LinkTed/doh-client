@@ -91,7 +91,7 @@ macro_rules! send_request {
 			    	match send_request.send_request(request, false) {
                         Ok((response, mut request)) => {
                             match request.send_data($a.msg.get_without_tid(), true) {
-                                Ok(()) => GetResponse(Http2ResponseFuture::new(response, $a.sender.clone(), $a.addr, $a.msg.get_tid()).timeout(Duration::from_secs(3)), id),
+                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs(3)), id),
                                 Err(e) => {
                                     error!("send_data: {}", e);
                                     CloseConnection($a.mutex_send_request.lock(), id)
@@ -175,7 +175,33 @@ impl Future for Http2RequestFuture {
                 },
                 GetResponse(ref mut http2_response_future, ref id) => {
                     match http2_response_future.poll() {
-                        Ok(async) => return Ok(async),
+                        Ok(async) => {
+                            match async {
+                                Ready(buffer) => {
+                                    match DnsPacket::from_tid(buffer, self.msg.get_tid()) {
+                                        Ok(dns) => {
+                                            if dns.is_response() {
+                                                match self.sender.unbounded_send((dns, self.addr)) {
+                                                    Ok(()) => return Ok(Ready(())),
+                                                    Err(e) => {
+                                                        error!("GetBody: unbounded_send: {}", e);
+                                                        return Err(());
+                                                    }
+                                                }
+                                            } else {
+                                                error!("GetBody: get a non DNS response");
+                                                return Err(())
+                                            }
+                                        },
+                                        Err(e) => {
+                                            error!("GetBody: DNS parser error: {}", e);
+                                            return Err(());
+                                        }
+                                    }
+                                },
+                                NotReady => return Ok(NotReady)
+                            }
+                        },
                         Err(_e) => {
                             error!("Timeout");
                             CloseConnection(self.mutex_send_request.lock(), *id)
@@ -285,23 +311,20 @@ enum Http2ResponseState {
 
 pub struct Http2ResponseFuture {
     state: Http2ResponseState,
-    sender: Arc<UnboundedSender<(DnsPacket, SocketAddr)>>,
-    addr: SocketAddr,
     buffer: Bytes,
-    tid: [u8;2],
 }
 
 impl Http2ResponseFuture {
-    pub fn new(response_future: ResponseFuture, sender: Arc<UnboundedSender<(DnsPacket, SocketAddr)>>, addr: SocketAddr, tid: [u8;2]) -> Http2ResponseFuture {
-        Http2ResponseFuture {state: Http2ResponseState::GetResponse(response_future) ,sender, addr, buffer: Bytes::new(), tid}
+    pub fn new(response_future: ResponseFuture) -> Http2ResponseFuture {
+        Http2ResponseFuture {state: Http2ResponseState::GetResponse(response_future), buffer: Bytes::new()}
     }
 }
 
 impl Future for Http2ResponseFuture {
-    type Item = ();
+    type Item = Bytes;
     type Error = ();
 
-    fn poll(&mut self) -> Result<Async<()>, ()> {
+    fn poll(&mut self) -> Result<Async<Bytes>, ()> {
         use self::Http2ResponseState::*;
         use self::Async::*;
         loop {
@@ -314,19 +337,19 @@ impl Future for Http2ResponseFuture {
                                     let (header, body) = response.into_parts();
 
                                     if header.status != 200 {
-                                        error!("Http2ResponseFuture: GetResponse: header.status != 200");
+                                        error!("GetResponse: header.status != 200");
                                         return Err(())
                                     }
 
                                     match header.headers.get("content-type") {
                                         Some(value) => {
                                             if value != "application/dns-message" {
-                                                error!("Http2ResponseFuture: GetResponse: content-type != application/dns-message");
+                                                error!("GetResponse: content-type != application/dns-message");
                                                 return Err(())
                                             }
                                         }
                                         None => {
-                                            error!("Http2ResponseFuture: GetResponse: content-type is None");
+                                            error!("GetResponse: content-type is None");
                                             return Err(())
                                         }
                                     }
@@ -337,7 +360,7 @@ impl Future for Http2ResponseFuture {
                             }
                         },
                         Err(e) => {
-                            error!("Http2ResponseFuture: GetResponse: {}", e);
+                            error!("GetResponse: {}", e);
                             return Err(());
                         }
                     }
@@ -362,34 +385,17 @@ impl Future for Http2ResponseFuture {
 
                                             match stream.release_capacity().release_capacity(b_len) {
                                                 Ok(()) => {},
-                                                Err(e) => error!("Http2ResponseFuture: GetBody: release_capacity: {}", e)
+                                                Err(e) => error!("GetBody: release_capacity: {}", e)
                                             }
                                         } else {
-                                            match DnsPacket::from_tid(self.buffer.clone(), self.tid.clone()) {
-                                                Ok(dns) => {
-                                                    if dns.is_response() {
-                                                        match self.sender.unbounded_send((dns, self.addr)) {
-                                                            Ok(()) => {},
-                                                            Err(e) => {
-                                                                error!("Http2ResponseFuture: GetBody: unbounded_send: {}", e);
-                                                                return Err(());
-                                                            }
-                                                        }
-                                                    } else {
-                                                        error!("Http2ResponseFuture: GetBody: get a non DNS response")
-                                                    }
-                                                },
-                                                Err(e) => error!("Http2ResponseFuture: GetBody: DNS parser error: {}", e)
-                                            }
-
-                                            return Ok(Ready(()));
+                                            return Ok(Ready(self.buffer.clone()));
                                         }
                                     },
                                     NotReady => return Ok(NotReady),
                                 }
                             },
                             Err(e) => {
-                                error!("Http2ResponseFuture: GetBody: {}", e);
+                                error!("GetBody: {}", e);
                                 return Err(());
                             }
                         }
