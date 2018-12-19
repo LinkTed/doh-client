@@ -1,0 +1,48 @@
+[Unit]
+Description=DNS over HTTPS client
+# Documentation=https://github.com/jedisct1/dnscrypt-proxy/wiki
+Wants=network-online.target nss-lookup.target
+Before=nss-lookup.target
+Requires=doh-client.socket
+
+[Service]
+ExecStart=/usr/local/bin/doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem --retries 25 -vv --listen-activation
+
+
+## Scheduling
+Nice=-20
+
+
+## Credentials
+# A UNIX user and group pair is allocated dynamically when the unit is started.
+DynamicUser=yes
+
+
+## Sandboxing
+# The entire file system hierarchy is mounted read-only.
+ProtectSystem=strict
+# The directories /home, /root and /run/user are made inaccessible and empty.
+ProtectHome=yes
+# RuntimeDirectory=dnscrypt-proxy
+# LogsDirectory=dnscrypt-proxy
+# CacheDirectory=dnscrypt-proxy
+# Kernel variables accessible will be made read-only to all processes of the unit.
+ProtectKernelTunables=yes
+# Explicit kernel module loading will be denied.
+ProtectKernelModules=yes
+# The Linux Control Groups will be made read-only to all processes of the unit.
+ProtectControlGroups=yes
+# LockPersonality=yes
+
+## Capabilities
+# Controls which capabilities to include in the capability bounding set for the executed process.
+CapabilityBoundingSet=
+
+
+## Security
+# Ensures that the service process and all its children can never gain new privileges through execve()
+NoNewPrivileges=yes
+
+
+[Install]
+WantedBy=multi-user.target
