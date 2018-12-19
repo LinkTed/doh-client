@@ -6,6 +6,7 @@ use std::fmt::{Display, Formatter};
 use futures::stream::{SplitSink, SplitStream};
 use futures::Stream;
 
+use tokio::reactor::Handle;
 use tokio::codec::{Decoder, Encoder};
 use tokio::net::{UdpSocket, UdpFramed};
 
@@ -22,9 +23,26 @@ pub enum DnsParserError {
 
 impl Display for DnsParserError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        use self::DnsParserError::*;
         match self {
-            DnsParserError::TooLittleData => write!(f, "TooLittleData"),
-            DnsParserError::TooMuchData => write!(f, "TooMuchData"),
+            TooLittleData => write!(f, "TooLittleData"),
+            TooMuchData => write!(f, "TooMuchData"),
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum UdpListenSocket {
+    Addr(SocketAddr),
+    Activation
+}
+
+impl Display for UdpListenSocket {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        use self::UdpListenSocket::*;
+        match self {
+            Addr(socket_addr) => write!(f, "{}", socket_addr),
+            Activation => write!(f, "file descriptor 3"),
         }
     }
 }
@@ -117,11 +135,25 @@ impl DnsPacket {
 }
 
 impl DnsCodec {
-    pub fn new(listen_addr: SocketAddr) -> Result<(SplitSink<UdpFramed<DnsCodec>>, SplitStream<UdpFramed<DnsCodec>>), Error> {
-        return match UdpSocket::bind(&listen_addr) {
-            Ok(socket) => Ok(UdpFramed::new(socket, DnsCodec).split()),
-            Err(e) => Err(e)
+    pub fn new(listen: UdpListenSocket) -> Result<(SplitSink<UdpFramed<DnsCodec>>, SplitStream<UdpFramed<DnsCodec>>), Error> {
+        use self::UdpListenSocket::*;
+        let socket = match listen {
+            Addr(socket_addr) => match UdpSocket::bind(&socket_addr) {
+                Ok(socket) => socket,
+                Err(e) => return Err(e)
+            },
+            Activation => {
+                use std::net;
+                use std::os::unix::io::FromRawFd;
+                unsafe {
+                    match UdpSocket::from_std(net::UdpSocket::from_raw_fd(3), &Handle::current()) {
+                        Ok(socket) => socket,
+                        Err(e) => return Err(e)
+                    }
+                }
+            }
         };
+        Ok(UdpFramed::new(socket, DnsCodec).split())
     }
 }
 

@@ -6,7 +6,7 @@ extern crate doh_client;
 
 use log::{set_max_level, set_logger, LevelFilter};
 
-use clap::{Arg, App};
+use clap::{Arg, App, ArgGroup};
 
 use doh_client::{Config, run};
 use doh_client::logger::Logger;
@@ -14,6 +14,7 @@ use doh_client::logger::Logger;
 use std::net::SocketAddr;
 use std::process::exit;
 
+use doh_client::dns::UdpListenSocket::*;
 
 static LOGGER: Logger = Logger{};
 
@@ -27,9 +28,15 @@ fn main() {
             .short("l")
             .long("listen-addr")
             .value_name("Addr")
-            .help("Listen address")
-            .default_value("127.0.0.1:53")
+            .help("Listen address [default: 127.0.0.1:53]")
             .required(false))
+        .arg(Arg::with_name("listen-activation")
+            .long("listen-activation")
+            .help("Use file descriptor 3 as UDP socket")
+            .required(false))
+        .group(ArgGroup::with_name("listen")
+            .arg("listen-addr")
+            .arg("listen-activation"))
         .arg(Arg::with_name("remote-addr")
             .short("r")
             .long("remote-addr")
@@ -61,7 +68,15 @@ fn main() {
             .help("Sets the level of verbosity"))
         .get_matches();
 
-    let listen_addr: SocketAddr = matches.value_of("listen-addr").unwrap().parse().unwrap();
+    let listen_socket = if matches.is_present("listen-activation") {
+        Activation
+    } else {
+        if matches.is_present("listen-addr") {
+            Addr(matches.value_of("listen-addr").unwrap().parse().unwrap())
+        } else {
+            Addr("127.0.0.1:53".parse().unwrap())
+        }
+    };
     let remote_addr: SocketAddr = matches.value_of("remote-addr").unwrap().parse().unwrap();
     let domain = matches.value_of("domain").unwrap();
     let cafile = matches.value_of("cafile").unwrap();
@@ -80,5 +95,5 @@ fn main() {
         4 | _ => set_max_level(LevelFilter::Trace),
     }
 
-    run(Config::new(listen_addr, remote_addr, domain, cafile, retries));
+    run(Config::new(listen_socket, remote_addr, domain, cafile, retries));
 }
