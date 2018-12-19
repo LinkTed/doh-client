@@ -85,60 +85,6 @@ pub fn run(config: Config) {
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
         tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), msg, addr, sender.clone(), config.clone()));
 
-//        let mut guard_send_request = mutex_send_request.lock().unwrap();
-//
-//        if let None = *guard_send_request {
-//            let mut guard_runtime_http = mutex_runtime_http.lock().unwrap();
-//            *guard_send_request = match connect_http2_server(config.remote_addr, config.client_config.clone(), config.domain.clone(), config.retries) {
-//                Ok(mut send_request) => {
-//
-//                    Some(send_request)
-//                }
-//                Err(_e) => {
-//                    exit(1);
-//                }
-//            };
-//        }
-//
-//        let result = match *guard_send_request {
-//            Some(ref mut send_request) => {
-//                send_request.send_request(request, false)
-//            },
-//            None => {
-//                println!("That should not happen");
-//                return Err(Error::new(ErrorKind::Other, "guard_send_request is None"));
-//            }
-//        };
-//        drop(guard_send_request);
-//
-//        match result {
-//            Ok((response, mut request)) => {
-//                match request.send_data(msg.get_without_tid(), true) {
-//                    Ok(()) => {
-//                        let mutex_send_request  = mutex_send_request.clone();
-//                        let mut guard_runtime_http = mutex_runtime_http.lock().unwrap();
-//                        match *guard_runtime_http {
-//                            Some(ref mut runtime_http) => {
-//                                let mutex_runtime_http  = mutex_runtime_http.clone();
-//                                runtime_http.spawn(Http2ResponseFuture::new(response, sender.clone(), addr, tid).timeout(Duration::from_secs(3)).map_err(move |_e| {
-//                                    close_connection!(mutex_send_request, mutex_runtime_http);
-//                                }));
-//                            },
-//                            None => {}
-//                        }
-//                        drop(guard_runtime_http);
-//                    },
-//                    Err(e) => {
-//                        close_connection!(mutex_send_request, mutex_runtime_http);
-//                    }
-//                }
-//            },
-//            Err(e) => {
-//                close_connection!(mutex_send_request, mutex_runtime_http);
-//            }
-//        }
-
-
         Ok(())
     });
     tokio::run(dns_queries.map_err(|e| {error!("UDP socket err: {}", e)}).join(dns_sink).map(|(_a, _b)| {
