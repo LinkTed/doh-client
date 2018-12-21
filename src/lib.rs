@@ -59,12 +59,6 @@ impl Config {
     }
 }
 
-impl Clone for Config {
-    fn clone(&self) -> Config {
-        Config {listen_socket: self.listen_socket.clone(), remote_addr: self.remote_addr, domain: self.domain.clone(), client_config: self.client_config.clone(), retries: self.retries, timeout: self.timeout}
-    }
-}
-
 pub struct Context {
     config: Config,
     sender: UnboundedSender<(DnsPacket, SocketAddr)>
