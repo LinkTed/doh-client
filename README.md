@@ -35,16 +35,20 @@ Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 The default values connect to the Cloudflare DNS.
 
 USAGE:
-    doh-client [OPTIONS] --cafile <FILE>
+    doh-client [FLAGS] [OPTIONS] --cafile <FILE>
 
 FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -h, --help                 Prints help information
+        --listen-activation    Use file descriptor 3 as UDP socket
+    -v                         Sets the level of verbosity
+    -V, --version              Prints version information
 
 OPTIONS:
-    -c, --cafile <FILE>             The path to the pem file, which contains the trusted CA certificates
-    -d, --domain <Domain>           The domain name of the remote server [default: cloudflare-dns.com]
-    -l, --listen-addr <Addr>        Listen address [default: 127.0.0.1:53]
-    -r, --remote-addr <Addr>        Remote address [default: 1.1.1.1:443]
-        --retries <UNSIGNED INT>    The number of reties to connect to the remote server
+    -c, --cafile <FILE>              The path to the pem file, which contains the trusted CA certificates
+    -d, --domain <Domain>            The domain name of the remote server [default: cloudflare-dns.com]
+    -l, --listen-addr <Addr>         Listen address [default: 127.0.0.1:53]
+    -r, --remote-addr <Addr>         Remote address [default: 1.1.1.1:443]
+        --retries <UNSIGNED INT>     The number of reties to connect to the remote server [default: 3]
+        --timeout <UNSIGNED LONG>    The time in seconds after that the connection would be closed if no response is
+                                     received from the server [default: 2]
 ```
