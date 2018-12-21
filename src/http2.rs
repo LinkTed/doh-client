@@ -46,14 +46,14 @@ pub fn create_config(cafile: &str) -> Result<ClientConfig, Error> {
 
 
 enum Http2RequestState {
-    GetMutexSendRequest(MutexFut<(Option<SendRequest<Bytes>>, u16)>),
-    GetConnection(MutexGuard<(Option<SendRequest<Bytes>>, u16)>, Http2ConnectionFuture, u16),
-    GetResponse(Timeout<Http2ResponseFuture>, u16),
-    CloseConnection(MutexFut<(Option<SendRequest<Bytes>>, u16)>, u16),
+    GetMutexSendRequest(MutexFut<(Option<SendRequest<Bytes>>, u32)>),
+    GetConnection(MutexGuard<(Option<SendRequest<Bytes>>, u32)>, Http2ConnectionFuture, u32),
+    GetResponse(Timeout<Http2ResponseFuture>, u32),
+    CloseConnection(MutexFut<(Option<SendRequest<Bytes>>, u32)>, u32),
 }
 
 pub struct Http2RequestFuture {
-    mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u16)>,
+    mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>,
     state: Http2RequestState,
     context: Arc<Context>,
     msg: DnsPacket,
@@ -61,7 +61,7 @@ pub struct Http2RequestFuture {
 }
 
 impl Http2RequestFuture {
-    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u16)>, msg: DnsPacket, addr: SocketAddr, context: Arc<Context>) -> Http2RequestFuture {
+    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>, msg: DnsPacket, addr: SocketAddr, context: Arc<Context>) -> Http2RequestFuture {
         debug!("Received UDP packet from {} {:#?}", addr, msg.get_tid());
 
         let mutex_fut = mutex_send_request.lock();

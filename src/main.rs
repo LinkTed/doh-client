@@ -87,7 +87,7 @@ fn main() {
     let remote_addr: SocketAddr = matches.value_of("remote-addr").unwrap().parse().unwrap();
     let domain = matches.value_of("domain").unwrap();
     let cafile = matches.value_of("cafile").unwrap();
-    let retries: u16 = value_t!(matches, "retries", u16).unwrap_or(3);
+    let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
     let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
 
     if let Err(e) = set_logger(&LOGGER) {

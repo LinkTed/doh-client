@@ -41,12 +41,12 @@ pub struct Config {
     remote_addr: SocketAddr,
     domain: String,
     client_config: ClientConfig,
-    retries: u16,
+    retries: u32,
     timeout: u64
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, retries: u16, timeout: u64) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, retries: u32, timeout: u64) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) =>  client_config,
             Err(e) => {
@@ -88,7 +88,7 @@ pub fn run(config: Config) {
         }))
         .map_err(|e| error!("dns_sink: {}", e));
 
-    let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u16)> = Mutex::new((None, 0));
+    let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)> = Mutex::new((None, 0));
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
         tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), msg, addr, context.clone()));
 
