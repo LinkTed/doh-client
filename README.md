@@ -1,10 +1,10 @@
 # doh-client
-`doh-client` is a DNS over HTTPS client, which opens a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
-The default values connect to the Cloudflare DNS.
-It uses [Tokio](https://tokio.rs/) for the asynchronous IO operations and [Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server.
+`doh-client` is a DNS over HTTPS client, which opens a local UDP (DNS) port and forwards all DNS queries to a remote HTTP/2.0 server.
+By default the client will connect to the Cloudflare DNS service.
+It uses [Tokio](https://tokio.rs/) for all asynchronous IO operations and [Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server.
 
 ## Getting Started
-`doh-client` is written in Rust. To build it you need the Rust compiler and the build system `cargo`.
+`doh-client` is written in Rust. To build it you need the Rust compiler and build system `cargo`.
 
 ### Build
 ```
@@ -20,13 +20,13 @@ To run the binary, you need one option (see [Options](Options))
 ```
 $ ./doh-client --cafile /path/to/the/ca/file.pem
 ```
-For example if you use [Arch Linux](https://www.archlinux.org/) then the following command use the system cert store:
+For example if you use [Arch Linux](https://www.archlinux.org/) then the following command uses the system cert store:
 ```
 # ./doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem
 ```
 
 ## Options
-`doh-client` have one required option, `--cafile` the path to the pem file, which contains the trusted CA certificates. 
+`doh-client` has one required option, `--cafile` which sets path to a pem file, which contains the trusted CA certificates. 
 ```
 $ ./doh-client --help
 DNS over HTTPS client 1.0
