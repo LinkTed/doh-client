@@ -6,7 +6,7 @@ Before=nss-lookup.target
 Requires=doh-client.socket
 
 [Service]
-ExecStart=/usr/local/bin/doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem --retries 25 -vv --listen-activation
+ExecStart=/usr/local/bin/doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem -vv --listen-activation
 
 
 ## Scheduling
