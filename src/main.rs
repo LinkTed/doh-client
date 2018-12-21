@@ -55,6 +55,13 @@ fn main() {
             .long("retries")
             .value_name("UNSIGNED INT")
             .help("The number of reties to connect to the remote server")
+            .default_value("3")
+            .required(false))
+        .arg(Arg::with_name("timeout")
+            .long("timeout")
+            .value_name("UNSIGNED LONG")
+            .help("The time in seconds after that the connection would be closed if no response is received from the server")
+            .default_value("2")
             .required(false))
         .arg(Arg::with_name("cafile")
             .short("c")
@@ -81,6 +88,7 @@ fn main() {
     let domain = matches.value_of("domain").unwrap();
     let cafile = matches.value_of("cafile").unwrap();
     let retries: u16 = value_t!(matches, "retries", u16).unwrap_or(3);
+    let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
 
     if let Err(e) = set_logger(&LOGGER) {
         eprintln!("Could not set logger: {}", e);
@@ -95,5 +103,5 @@ fn main() {
         4 | _ => set_max_level(LevelFilter::Trace),
     }
 
-    run(Config::new(listen_socket, remote_addr, domain, cafile, retries));
+    run(Config::new(listen_socket, remote_addr, domain, cafile, retries, timeout));
 }

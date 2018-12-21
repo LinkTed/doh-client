@@ -91,7 +91,7 @@ macro_rules! send_request {
 			    	match send_request.send_request(request, false) {
                         Ok((response, mut request)) => {
                             match request.send_data($a.msg.get_without_tid(), true) {
-                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs(3)), id),
+                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs($a.config.timeout)), id),
                                 Err(e) => {
                                     error!("send_data: {}", e);
                                     CloseConnection($a.mutex_send_request.lock(), id)

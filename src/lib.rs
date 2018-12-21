@@ -41,10 +41,11 @@ pub struct Config {
     domain: String,
     client_config: ClientConfig,
     retries: u16,
+    timeout: u64
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, retries: u16) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, retries: u16, timeout: u64) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) =>  client_config,
             Err(e) => {
@@ -53,13 +54,13 @@ impl Config {
             }
         };
 
-        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, retries}
+        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, retries, timeout}
     }
 }
 
 impl Clone for Config {
     fn clone(&self) -> Config {
-        Config {listen_socket: self.listen_socket.clone(), remote_addr: self.remote_addr, domain: self.domain.clone(), client_config: self.client_config.clone(), retries: self.retries}
+        Config {listen_socket: self.listen_socket.clone(), remote_addr: self.remote_addr, domain: self.domain.clone(), client_config: self.client_config.clone(), retries: self.retries, timeout: self.timeout}
     }
 }
 
