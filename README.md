@@ -26,13 +26,13 @@ For example if you use [Arch Linux](https://www.archlinux.org/) then the followi
 ```
 
 ## Options
-`doh-client` has one required option, `--cafile` which sets path to a pem file, which contains the trusted CA certificates. 
+`doh-client` has one required option, `--cafile` which sets path to a pem file, which contains the trusted CA certificates.
 ```
 $ ./doh-client --help
 DNS over HTTPS client 1.0
 link.ted@mailbox.org
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
-The default values connect to the Cloudflare DNS.
+By default the client will connect to the Cloudflare DNS service.
 
 USAGE:
     doh-client [FLAGS] [OPTIONS] --cafile <FILE>
