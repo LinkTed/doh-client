@@ -21,6 +21,7 @@ use rustls::ClientConfig;
 use futures::sync::mpsc::unbounded;
 use futures::{Sink, Stream, Future};
 
+use futures::sync::mpsc::UnboundedSender;
 use futures_locks::Mutex;
 
 
@@ -64,6 +65,17 @@ impl Clone for Config {
     }
 }
 
+pub struct Context {
+    config: Config,
+    sender: UnboundedSender<(DnsPacket, SocketAddr)>
+}
+
+impl Context {
+    pub fn new(config: Config, sender: UnboundedSender<(DnsPacket, SocketAddr)>) -> Context {
+        Context{config, sender}
+    }
+}
+
 pub fn run(config: Config) {
     // UDP
     let (dns_sink, dns_stream) = match DnsCodec::new(config.listen_socket) {
@@ -74,7 +86,7 @@ pub fn run(config: Config) {
         }
     };
     let (sender, receiver) = unbounded::<(DnsPacket, SocketAddr)>();
-    let sender = Arc::new(sender);
+    let context = Arc::new(Context::new(config, sender));
 
     let dns_sink = dns_sink.send_all(receiver
         .map_err(|_| {
@@ -84,7 +96,7 @@ pub fn run(config: Config) {
 
     let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u16)> = Mutex::new((None, 0));
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
-        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), msg, addr, sender.clone(), config.clone()));
+        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), msg, addr, context.clone()));
 
         Ok(())
     });
