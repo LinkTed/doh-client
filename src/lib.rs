@@ -1,3 +1,4 @@
+extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate tokio;

@@ -1,5 +1,6 @@
 use std::io;
 use std::io::Error;
+use std::net;
 use std::net::SocketAddr;
 use std::fmt::{Display, Formatter};
 
@@ -134,6 +135,47 @@ impl DnsPacket {
     }
 }
 
+#[cfg(target_os="macos")]
+use std::os::raw::{c_int, c_char};
+#[cfg(target_os="macos")]
+use libc::{size_t, free};
+
+#[cfg(target_os="macos")]
+extern {
+    fn launch_activate_socket(name: *const c_char, fds: *mut * mut c_int, cnt: *mut size_t) -> c_int;
+}
+
+#[cfg(target_os="macos")]
+fn get_activation_socket() -> net::UdpSocket {
+    use std::ffi::CString;
+    unsafe {
+        let fds: *mut c_int;
+        let cnt: size_t;
+
+        let name = CString::new("Listeners").expect("CString::new failed");
+        if launch_activate_socket(name.as_ptr(), &mut fds, &mut cnt) == 0 {
+            if cnt == 1 {
+                free(fds);
+                net::UdpSocket::from_raw_fd(fds[0])
+            } else {
+                panic!("cnt == 1")
+            }
+        } else {
+            panic!("launch_activate_socket")
+        }
+    }
+}
+
+#[cfg(not(target_os="macos"))]
+fn get_activation_socket() -> net::UdpSocket {
+    use std::os::unix::io::FromRawFd;
+    unsafe {
+        net::UdpSocket::from_raw_fd(3)
+    }
+}
+
+
+
 impl DnsCodec {
     pub fn new(listen: UdpListenSocket) -> Result<(SplitSink<UdpFramed<DnsCodec>>, SplitStream<UdpFramed<DnsCodec>>), Error> {
         use self::UdpListenSocket::*;
@@ -143,13 +185,10 @@ impl DnsCodec {
                 Err(e) => return Err(e)
             },
             Activation => {
-                use std::net;
-                use std::os::unix::io::FromRawFd;
-                unsafe {
-                    match UdpSocket::from_std(net::UdpSocket::from_raw_fd(3), &Handle::current()) {
-                        Ok(socket) => socket,
-                        Err(e) => return Err(e)
-                    }
+
+                match UdpSocket::from_std(get_activation_socket(), &Handle::current()) {
+                    Ok(socket) => socket,
+                    Err(e) => return Err(e)
                 }
             }
         };

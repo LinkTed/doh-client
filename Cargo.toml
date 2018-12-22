@@ -4,6 +4,7 @@ version = "1.0.0"
 authors = ["link.ted@mailbox.org"]
 
 [dependencies]
+libc = "0.2.45"
 log = "0.4.6"
 clap = "2.32.0"
 tokio = "0.1.13"
