@@ -2,6 +2,16 @@
 name = "doh-client"
 version = "1.0.0"
 authors = ["link.ted@mailbox.org"]
+license = "BSD 3-Clause"
+description = "DNS over HTTPS client"
+readme = "README.md"
+keywords = ["doh","dns", "http2", "h2"]
+exclude = [
+    ".gitignore",
+    "com.doh-client.daemon.plist",
+    "doh-client.service",
+    "doh-client.socket",
+]
 
 [dependencies]
 libc = "0.2.45"
