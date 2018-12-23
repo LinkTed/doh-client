@@ -11,8 +11,12 @@ exclude = [
     "com.doh-client.daemon.plist",
     "doh-client.service",
     "doh-client.socket",
-]
+    ]
 repository = "https://github.com/LinkTed/doh-client"
+categories = [
+    "command-line-utilities",
+    "network-programming"
+    ]
 
 [dependencies]
 libc = "0.2.45"
