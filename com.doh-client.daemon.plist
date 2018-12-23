@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+
+    <key>Label</key>
+    <string>com.doh.daemon.plist</string>
+
+    <key>UserName</key>
+    <string>nobody</string>
+    <key>GroupName</key>
+    <string>nobody</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>PATH</key>
+      <string><![CDATA[/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin]]></string>
+    </dict>
+
+    <key>RunAtLoad</key>
+	<true/>
+
+    <key>Sockets</key>
+    <dict>
+        <key>Listeners</key>
+        <dict>
+            <key>SockServiceName</key>
+            <string>domain</string>
+	    <key>SockNodeName</key>
+	    <string>127.0.0.1</string>
+            <key>SockType</key>
+            <string>dgram</string>
+            <key>SockFamily</key>
+            <string>IPv4</string>
+         </dict>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/usr/local/bin</string>
+
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/local/bin/doh-client</string>
+      <string>--listen-activation</string>
+      <string>--cafile</string>
+      <string>/usr/local/share/doh-client/DigiCert_Global_Root_CA.pem</string>
+    </array>
+
+  </dict>
+</plist>
