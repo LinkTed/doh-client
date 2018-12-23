@@ -71,22 +71,22 @@ impl Http2RequestFuture {
 }
 
 macro_rules! send_request {
-	($a:ident, $b:ident) => {
-		{
-			let request = Request::builder()
-				.method("POST")
-				.uri("https://cloudflare-dns.com/dns-query")
-				.header("accept", "application/dns-message")
-				.header("content-type", "application/dns-message")
-				.header("content-length", $a.msg.len().to_string())
-				.body(())
-				.unwrap();
+    ($a:ident, $b:ident) => {
+        {
+            let request = Request::builder()
+                .method("POST")
+                .uri("https://cloudflare-dns.com/dns-query")
+                .header("accept", "application/dns-message")
+                .header("content-type", "application/dns-message")
+                .header("content-length", $a.msg.len().to_string())
+                .body(())
+                .unwrap();
 
             let id = (*$b).1;
 
-			match (*$b).0 {
-			    Some(ref mut send_request) => {
-			    	match send_request.send_request(request, false) {
+            match (*$b).0 {
+                Some(ref mut send_request) => {
+                    match send_request.send_request(request, false) {
                         Ok((response, mut request)) => {
                             match request.send_data($a.msg.get_without_tid(), true) {
                                 Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs($a.context.config.timeout)), id),
@@ -101,10 +101,10 @@ macro_rules! send_request {
                             CloseConnection($a.mutex_send_request.lock(), id)
                         }
                     }
-			    },
-			    None => return Err(())
-			}
-		}
+                },
+                None => return Err(())
+            }
+        }
     }
 }
 
