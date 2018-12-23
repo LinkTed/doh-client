@@ -12,6 +12,7 @@ exclude = [
     "doh-client.service",
     "doh-client.socket",
 ]
+repository = "https://github.com/LinkTed/doh-client"
 
 [dependencies]
 libc = "0.2.45"
