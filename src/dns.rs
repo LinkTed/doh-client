@@ -136,7 +136,7 @@ impl DnsPacket {
 }
 
 #[cfg(target_os="macos")]
-use std::os::raw::{c_int, c_char};
+use std::os::raw::{c_int, c_char, c_void};
 #[cfg(target_os="macos")]
 use libc::{size_t, free};
 
@@ -148,15 +148,18 @@ extern {
 #[cfg(target_os="macos")]
 fn get_activation_socket() -> net::UdpSocket {
     use std::ffi::CString;
+    use std::os::unix::io::FromRawFd;
+    use std::ptr;
     unsafe {
-        let fds: *mut c_int;
-        let cnt: size_t;
+        let mut fds: *mut c_int = ptr::null_mut();
+        let mut cnt: size_t = 0;
 
         let name = CString::new("Listeners").expect("CString::new failed");
         if launch_activate_socket(name.as_ptr(), &mut fds, &mut cnt) == 0 {
             if cnt == 1 {
-                free(fds);
-                net::UdpSocket::from_raw_fd(fds[0])
+                let socket = net::UdpSocket::from_raw_fd(*fds.offset(0));
+                free(fds as *mut c_void);
+                socket
             } else {
                 panic!("cnt == 1")
             }
