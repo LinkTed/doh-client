@@ -69,6 +69,13 @@ fn main() {
             .value_name("FILE")
             .help("The path to the pem file, which contains the trusted CA certificates")
             .required(true))
+        .arg(Arg::with_name("path")
+            .short("p")
+            .long("path")
+            .value_name("STRING")
+            .help("The path of the URI")
+            .default_value("dns-query")
+            .required(false))
         .arg(Arg::with_name("v")
             .short("v")
             .multiple(true)
@@ -87,6 +94,7 @@ fn main() {
     let remote_addr: SocketAddr = matches.value_of("remote-addr").unwrap().parse().unwrap();
     let domain = matches.value_of("domain").unwrap();
     let cafile = matches.value_of("cafile").unwrap();
+    let path = matches.value_of("path").unwrap();
     let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
     let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
 
@@ -103,5 +111,5 @@ fn main() {
         4 | _ => set_max_level(LevelFilter::Trace),
     }
 
-    run(Config::new(listen_socket, remote_addr, domain, cafile, retries, timeout));
+    run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout));
 }

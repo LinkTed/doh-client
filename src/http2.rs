@@ -73,12 +73,15 @@ impl Http2RequestFuture {
 macro_rules! send_request {
     ($a:ident, $b:ident) => {
         {
+            let config = &$a.context.config;
+            let msg = &$a.msg;
+
             let request = Request::builder()
                 .method("POST")
-                .uri("https://cloudflare-dns.com/dns-query")
+                .uri(config.uri.clone())
                 .header("accept", "application/dns-message")
                 .header("content-type", "application/dns-message")
-                .header("content-length", $a.msg.len().to_string())
+                .header("content-length", msg.len().to_string())
                 .body(())
                 .unwrap();
 
@@ -88,8 +91,8 @@ macro_rules! send_request {
                 Some(ref mut send_request) => {
                     match send_request.send_request(request, false) {
                         Ok((response, mut request)) => {
-                            match request.send_data($a.msg.get_without_tid(), true) {
-                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs($a.context.config.timeout)), id),
+                            match request.send_data(msg.get_without_tid(), true) {
+                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs(config.timeout)), id),
                                 Err(e) => {
                                     error!("send_data: {}", e);
                                     CloseConnection($a.mutex_send_request.lock(), id)
