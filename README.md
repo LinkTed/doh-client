@@ -72,7 +72,7 @@ To run the `doh-client` as daemon and without `root` under Mac OS with `launchd`
 certificates.
 ```
 $ ./doh-client --help
-DNS over HTTPS client 1.0
+DNS over HTTPS client 1.1.1
 link.ted@mailbox.org
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default the client will connect to the Cloudflare DNS service.
@@ -90,6 +90,7 @@ OPTIONS:
     -c, --cafile <FILE>              The path to the pem file, which contains the trusted CA certificates
     -d, --domain <Domain>            The domain name of the remote server [default: cloudflare-dns.com]
     -l, --listen-addr <Addr>         Listen address [default: 127.0.0.1:53]
+    -p, --path <STRING>              The path of the URI [default: dns-query]
     -r, --remote-addr <Addr>         Remote address [default: 1.1.1.1:443]
         --retries <UNSIGNED INT>     The number of reties to connect to the remote server [default: 3]
         --timeout <UNSIGNED LONG>    The time in seconds after that the connection would be closed if no response is
