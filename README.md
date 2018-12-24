@@ -29,7 +29,7 @@ For example if you use [Arch Linux](https://www.archlinux.org/) then the followi
 #### Linux (`systemd`)
 To run the `doh-client` as daemon and without `root` under Linux with `systemd` as init system:
 1. Build the binary see [Build](#Build).
-2. Copy as root `systemd` config files to `/etc/systemd/system/` as follow:
+2. Copy as root the `systemd` config files to `/etc/systemd/system/` as follow:
    ```
    # cp doh-client.service doh-client.socket /etc/systemd/system
    ```
