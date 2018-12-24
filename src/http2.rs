@@ -73,12 +73,15 @@ impl Http2RequestFuture {
 macro_rules! send_request {
     ($a:ident, $b:ident) => {
         {
+            let config = &$a.context.config;
+            let msg = &$a.msg;
+
             let request = Request::builder()
                 .method("POST")
-                .uri("https://cloudflare-dns.com/dns-query")
+                .uri(config.uri.clone())
                 .header("accept", "application/dns-message")
                 .header("content-type", "application/dns-message")
-                .header("content-length", $a.msg.len().to_string())
+                .header("content-length", msg.len().to_string())
                 .body(())
                 .unwrap();
 
@@ -88,8 +91,8 @@ macro_rules! send_request {
                 Some(ref mut send_request) => {
                     match send_request.send_request(request, false) {
                         Ok((response, mut request)) => {
-                            match request.send_data($a.msg.get_without_tid(), true) {
-                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs($a.context.config.timeout)), id),
+                            match request.send_data(msg.get_without_tid(), true) {
+                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs(config.timeout)), id),
                                 Err(e) => {
                                     error!("send_data: {}", e);
                                     CloseConnection($a.mutex_send_request.lock(), id)
@@ -118,6 +121,8 @@ impl Future for Http2RequestFuture {
         loop {
             self.state = match self.state {
                 GetMutexSendRequest(ref mut mutex_fut) => {
+                    let config = &self.context.config;
+
                     match mutex_fut.poll() {
                         Ok(async) => {
                             match async {
@@ -125,7 +130,7 @@ impl Future for Http2RequestFuture {
                                     if (*guard).0.is_some() {
                                         send_request!(self, guard)
                                     } else {
-                                        GetConnection(guard, Http2ConnectionFuture::new(self.context.config.remote_addr, self.context.config.client_config.clone(), self.context.config.domain.clone()), 1)
+                                        GetConnection(guard, Http2ConnectionFuture::new(config.remote_addr, config.client_config.clone(), config.domain.clone()), 1)
                                     }
                                 },
                                 NotReady => return Ok(NotReady)
@@ -138,6 +143,8 @@ impl Future for Http2RequestFuture {
                     }
                 },
                 GetConnection(ref mut guard, ref mut http2_connection_future, ref mut try) => {
+                    let config = &self.context.config;
+
                     match http2_connection_future.poll() {
                         Ok(async) => {
                             match async {
@@ -146,7 +153,7 @@ impl Future for Http2RequestFuture {
                                         error!("H2 connection error: {}", e)
                                     }));
 
-                                    info!("Connection was successfully established to remote server {} ({})", self.context.config.remote_addr, self.context.config.domain);
+                                    info!("Connection was successfully established to remote server {} ({})", config.remote_addr, config.domain);
 
                                     (*guard).0.replace(send_request);
                                     (*guard).1 += 1;
@@ -157,15 +164,15 @@ impl Future for Http2RequestFuture {
                             }
                         },
                         Err(e) => {
-                            error!("Connection to remote server {} ({}) failed: {}: retry: {}", self.context.config.remote_addr, self.context.config.domain, e, *try);
+                            error!("Connection to remote server {} ({}) failed: {}: retry: {}", config.remote_addr, config.domain, e, *try);
                             sleep(Duration::from_secs(1));
 
-                            if self.context.config.retries > *try {
+                            if config.retries > *try {
                                 *try += 1;
-                                *http2_connection_future = Http2ConnectionFuture::new(self.context.config.remote_addr, self.context.config.client_config.clone(), self.context.config.domain.clone());
+                                *http2_connection_future = Http2ConnectionFuture::new(config.remote_addr, config.client_config.clone(), config.domain.clone());
                                 continue;
                             } else {
-                                error!("Too many connection attempts to remote server {} ({})", self.context.config.remote_addr, self.context.config.domain);
+                                error!("Too many connection attempts to remote server {} ({})", config.remote_addr, config.domain);
                                 return Err(());
                             }
                         }

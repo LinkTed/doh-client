@@ -21,7 +21,7 @@ static LOGGER: Logger = Logger{};
 
 fn main() {
     let matches = App::new("DNS over HTTPS client")
-        .version("1.0")
+        .version("1.1.1")
         .author("link.ted@mailbox.org")
         .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default the client will connect to the Cloudflare DNS service.")
         .arg(Arg::with_name("listen-addr")
@@ -32,7 +32,7 @@ fn main() {
             .required(false))
         .arg(Arg::with_name("listen-activation")
             .long("listen-activation")
-            .help("Use file descriptor 3 as UDP socket")
+            .help("Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS")
             .required(false))
         .group(ArgGroup::with_name("listen")
             .arg("listen-addr")
@@ -69,6 +69,13 @@ fn main() {
             .value_name("FILE")
             .help("The path to the pem file, which contains the trusted CA certificates")
             .required(true))
+        .arg(Arg::with_name("path")
+            .short("p")
+            .long("path")
+            .value_name("STRING")
+            .help("The path of the URI")
+            .default_value("dns-query")
+            .required(false))
         .arg(Arg::with_name("v")
             .short("v")
             .multiple(true)
@@ -87,6 +94,7 @@ fn main() {
     let remote_addr: SocketAddr = matches.value_of("remote-addr").unwrap().parse().unwrap();
     let domain = matches.value_of("domain").unwrap();
     let cafile = matches.value_of("cafile").unwrap();
+    let path = matches.value_of("path").unwrap();
     let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
     let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
 
@@ -103,5 +111,5 @@ fn main() {
         4 | _ => set_max_level(LevelFilter::Trace),
     }
 
-    run(Config::new(listen_socket, remote_addr, domain, cafile, retries, timeout));
+    run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout));
 }

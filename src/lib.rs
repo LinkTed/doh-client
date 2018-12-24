@@ -42,12 +42,13 @@ pub struct Config {
     remote_addr: SocketAddr,
     domain: String,
     client_config: ClientConfig,
+    uri: String,
     retries: u32,
     timeout: u64
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, retries: u32, timeout: u64) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) =>  client_config,
             Err(e) => {
@@ -56,7 +57,9 @@ impl Config {
             }
         };
 
-        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, retries, timeout}
+        let uri = format!("https://{}/{}", domain, path);
+
+        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout}
     }
 }
 
