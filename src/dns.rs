@@ -161,7 +161,7 @@ fn get_activation_socket() -> Resutl<net::UdpSocket, Error> {
             if cnt == 1 {
                 let socket = net::UdpSocket::from_raw_fd(*fds.offset(0));
                 free(fds as *mut c_void);
-                socket
+                Ok(socket)
             } else {
                 Err(Error::new(Other, "Could not get fd: cnt != 1"))
             }
