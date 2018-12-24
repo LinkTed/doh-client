@@ -43,7 +43,15 @@ impl Display for UdpListenSocket {
         use self::UdpListenSocket::*;
         match self {
             Addr(socket_addr) => write!(f, "{}", socket_addr),
-            Activation => write!(f, "file descriptor 3"),
+            Activation => {
+                if cfg!(target_os="macos") {
+                    write!(f, "file descriptor of launch_activate_socket()")
+                } else if cfg!(target_family="unix") {
+                    write!(f, "file descriptor 3")
+                } else {
+                    write!(f, "this is not supported")
+                }
+            },
         }
     }
 }

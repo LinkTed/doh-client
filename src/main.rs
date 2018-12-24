@@ -32,7 +32,7 @@ fn main() {
             .required(false))
         .arg(Arg::with_name("listen-activation")
             .long("listen-activation")
-            .help("Use file descriptor 3 as UDP socket")
+            .help("Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS")
             .required(false))
         .group(ArgGroup::with_name("listen")
             .arg("listen-addr")

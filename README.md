@@ -63,7 +63,7 @@ USAGE:
 
 FLAGS:
     -h, --help                 Prints help information
-        --listen-activation    Use file descriptor 3 as UDP socket
+        --listen-activation    Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS
     -v                         Sets the level of verbosity
     -V, --version              Prints version information
 
