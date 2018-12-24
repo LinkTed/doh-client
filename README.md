@@ -26,10 +26,11 @@ For example if you use [Arch Linux](https://www.archlinux.org/) then the followi
 ```
 # ./doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem
 ```
+
 #### Linux (`systemd`)
 To run the `doh-client` as daemon and without `root` under Linux with `systemd` as init system:
 1. Build the binary see [Build](#Build).
-2. Copy as root the `systemd` config files to `/etc/systemd/system/` as follow:
+2. Copy as `root` the `systemd` config files to `/etc/systemd/system/` as follow:
    ```
    # cp doh-client.service doh-client.socket /etc/systemd/system
    ```
@@ -46,6 +47,22 @@ To run the `doh-client` as daemon and without `root` under Linux with `systemd` 
    # systemctl start doh-client
    ```
 6. Adjust the `/etc/resolv.conf` by add the following line:
+   ```
+   nameserver 127.0.0.1
+   ```
+
+#### Mac OS (`launchd`)
+To run the `doh-client` as daemon and without `root` under Mac OS with `launchd` as init system:
+1. Build the binary see [Build](#Build).
+2. Copy as `root` the `launchd` config files to `/Library/LaunchDaemons/` as follow:
+   ```
+   # cp com.doh-client.daemon.plist /Library/LaunchDaemons
+   ```
+3. Load and start the config file as follow:
+   ```
+   # launchctl load -w /Library/LaunchDaemons/com.doh-client.daemon.plist
+   ```
+4. Adjust the `/etc/resolv.conf` by add the following line:
    ```
    nameserver 127.0.0.1
    ```
