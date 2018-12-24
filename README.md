@@ -1,7 +1,7 @@
 # doh-client
-`doh-client` is a DNS over HTTPS client, which opens a local UDP (DNS) port and forwards all DNS queries to a remote HTTP/2.0 server.
-By default the client will connect to the Cloudflare DNS service.
-It uses [Tokio](https://tokio.rs/) for all asynchronous IO operations and [Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server.
+`doh-client` is a DNS over HTTPS client, which opens a local UDP (DNS) port and forwards all DNS queries to a remote
+HTTP/2.0 server. By default the client will connect to the Cloudflare DNS service. It uses [Tokio](https://tokio.rs/)
+for all asynchronous IO operations and [Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server.
 
 ## Getting Started
 `doh-client` is written in Rust. To build it you need the Rust compiler and build system `cargo`.
@@ -16,7 +16,7 @@ $ cargo build --release
 ```
 
 ### Run
-To run the binary, you need one option (see [Options](Options))
+To run the binary, you need one option (see [Options](#Options))
 ```
 $ ./doh-client --cafile /path/to/the/ca/file.pem
 ```
@@ -24,9 +24,33 @@ For example if you use [Arch Linux](https://www.archlinux.org/) then the followi
 ```
 # ./doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem
 ```
+#### Linux (systemd)
+To run the doh-client as daemon and without root under Linux with systemd as init system.
+1. Build the binary see [Build](#Build).
+2. Copy as root systemd config files to `/etc/systemd/system/` as follow:
+   ```
+   # cp doh-client.service doh-client.socket /etc/systemd/system
+   ```
+3. Reload systemd manager configuration:
+   ```
+   # systemctl daemon-reload
+   ```
+4. Enable the doh-client as a daemon:
+   ```
+   # systemctl enable doh-client
+   ```
+5. Reboot the system or start the daemon manually:
+   ```
+   # systemctl start doh-client
+   ```
+6. Adjust the `/etc/resolv.conf` by add the following line:
+   ```
+   nameserver 127.0.0.1
+   ```
 
 ## Options
-`doh-client` has one required option, `--cafile` which sets path to a pem file, which contains the trusted CA certificates.
+`doh-client` has one required option, `--cafile` which sets path to a pem file, which contains the trusted CA
+certificates.
 ```
 $ ./doh-client --help
 DNS over HTTPS client 1.0
