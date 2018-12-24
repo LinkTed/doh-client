@@ -146,10 +146,11 @@ extern {
 }
 
 #[cfg(target_os="macos")]
-fn get_activation_socket() -> net::UdpSocket {
+fn get_activation_socket() -> Resutl<net::UdpSocket, Error> {
     use std::ffi::CString;
     use std::os::unix::io::FromRawFd;
     use std::ptr;
+    use std::io::ErrorKind::Other;
     unsafe {
         let mut fds: *mut c_int = ptr::null_mut();
         let mut cnt: size_t = 0;
@@ -161,19 +162,19 @@ fn get_activation_socket() -> net::UdpSocket {
                 free(fds as *mut c_void);
                 socket
             } else {
-                panic!("cnt == 1")
+                Err(Error::new(Other, "Could not get fd: cnt != 1"))
             }
         } else {
-            panic!("launch_activate_socket")
+            Err(Error::new(Other, "Could not get fd: launch_activate_socket != 0"))
         }
     }
 }
 
-#[cfg(not(target_os="macos"))]
-fn get_activation_socket() -> net::UdpSocket {
+#[cfg(all(target_family="unix",not(target_os="macos")))]
+fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     use std::os::unix::io::FromRawFd;
     unsafe {
-        net::UdpSocket::from_raw_fd(3)
+        Ok(net::UdpSocket::from_raw_fd(3))
     }
 }
 
@@ -188,9 +189,13 @@ impl DnsCodec {
                 Err(e) => return Err(e)
             },
             Activation => {
-
-                match UdpSocket::from_std(get_activation_socket(), &Handle::current()) {
-                    Ok(socket) => socket,
+                match get_activation_socket() {
+                    Ok(socket) => {
+                        match UdpSocket::from_std(socket, &Handle::current()) {
+                            Ok(socket) => socket,
+                            Err(e) => return Err(e)
+                        }
+                    },
                     Err(e) => return Err(e)
                 }
             }
