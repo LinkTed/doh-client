@@ -24,18 +24,18 @@ For example if you use [Arch Linux](https://www.archlinux.org/) then the followi
 ```
 # ./doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem
 ```
-#### Linux (systemd)
-To run the doh-client as daemon and without root under Linux with systemd as init system.
+#### Linux (`systemd`)
+To run the `doh-client` as daemon and without `root` under Linux with `systemd` as init system:
 1. Build the binary see [Build](#Build).
-2. Copy as root systemd config files to `/etc/systemd/system/` as follow:
+2. Copy as root `systemd` config files to `/etc/systemd/system/` as follow:
    ```
    # cp doh-client.service doh-client.socket /etc/systemd/system
    ```
-3. Reload systemd manager configuration:
+3. Reload `systemd` manager configuration:
    ```
    # systemctl daemon-reload
    ```
-4. Enable the doh-client as a daemon:
+4. Enable the `doh-client` as a daemon:
    ```
    # systemctl enable doh-client
    ```
