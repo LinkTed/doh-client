@@ -187,7 +187,10 @@ fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     }
 }
 
-
+#[cfg(target_family="windows")]
+fn get_activation_socket() -> Result<net::UdpSocket, Error> {
+    Err(Error::new(Other, "This is not supported in windows platforms"))
+}
 
 impl DnsCodec {
     pub fn new(listen: UdpListenSocket) -> Result<(SplitSink<UdpFramed<DnsCodec>>, SplitStream<UdpFramed<DnsCodec>>), Error> {
