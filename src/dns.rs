@@ -154,7 +154,7 @@ extern {
 }
 
 #[cfg(target_os="macos")]
-fn get_activation_socket() -> Resutl<net::UdpSocket, Error> {
+fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     use std::ffi::CString;
     use std::os::unix::io::FromRawFd;
     use std::ptr::null_mut;
