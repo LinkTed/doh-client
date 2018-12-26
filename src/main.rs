@@ -21,9 +21,9 @@ static LOGGER: Logger = Logger{};
 
 fn main() {
     let matches = App::new("DNS over HTTPS client")
-        .version("1.1.1")
+        .version("1.1.2")
         .author("link.ted@mailbox.org")
-        .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default the client will connect to the Cloudflare DNS service.")
+        .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default, the client will connect to the Cloudflare DNS service.")
         .arg(Arg::with_name("listen-addr")
             .short("l")
             .long("listen-addr")
@@ -54,7 +54,7 @@ fn main() {
         .arg(Arg::with_name("retries")
             .long("retries")
             .value_name("UNSIGNED INT")
-            .help("The number of reties to connect to the remote server")
+            .help("The number of retries to connect to the remote server")
             .default_value("3")
             .required(false))
         .arg(Arg::with_name("timeout")
