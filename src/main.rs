@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate clap;
@@ -21,7 +22,7 @@ static LOGGER: Logger = Logger{};
 
 fn main() {
     let matches = App::new("DNS over HTTPS client")
-        .version("1.1.2")
+        .version("1.1.3")
         .author("link.ted@mailbox.org")
         .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default, the client will connect to the Cloudflare DNS service.")
         .arg(Arg::with_name("listen-addr")
@@ -82,22 +83,6 @@ fn main() {
             .help("Sets the level of verbosity"))
         .get_matches();
 
-    let listen_socket = if matches.is_present("listen-activation") {
-        Activation
-    } else {
-        if matches.is_present("listen-addr") {
-            Addr(matches.value_of("listen-addr").unwrap().parse().unwrap())
-        } else {
-            Addr("127.0.0.1:53".parse().unwrap())
-        }
-    };
-    let remote_addr: SocketAddr = matches.value_of("remote-addr").unwrap().parse().unwrap();
-    let domain = matches.value_of("domain").unwrap();
-    let cafile = matches.value_of("cafile").unwrap();
-    let path = matches.value_of("path").unwrap();
-    let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
-    let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
-
     if let Err(e) = set_logger(&LOGGER) {
         eprintln!("Could not set logger: {}", e);
         exit(1);
@@ -110,6 +95,34 @@ fn main() {
         3 => set_max_level(LevelFilter::Debug),
         4 | _ => set_max_level(LevelFilter::Trace),
     }
+
+    let listen_socket = if matches.is_present("listen-activation") {
+        Activation
+    } else {
+        if matches.is_present("listen-addr") {
+            match matches.value_of("listen-addr").unwrap().parse() {
+                Ok(addr) => Addr(addr),
+                Err(e) => {
+                    error!("Could not parse listen address: {}", e);
+                    exit(1);
+                }
+            }
+        } else {
+            Addr("127.0.0.1:53".parse().unwrap())
+        }
+    };
+    let remote_addr: SocketAddr = match matches.value_of("remote-addr").unwrap().parse() {
+        Ok(addr) => addr,
+        Err(e) => {
+            error!("Could not parse remote address: {}", e);
+            exit(1);
+        }
+    };
+    let domain = matches.value_of("domain").unwrap();
+    let cafile = matches.value_of("cafile").unwrap();
+    let path = matches.value_of("path").unwrap();
+    let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
+    let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
 
     run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout));
 }
