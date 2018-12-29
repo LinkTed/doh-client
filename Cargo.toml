@@ -7,6 +7,7 @@ description = "DNS over HTTPS client"
 readme = "README.md"
 keywords = ["doh","dns", "http2", "h2"]
 exclude = [
+    ".travis.yml",
     ".gitignore",
     "com.doh-client.daemon.plist",
     "doh-client.service",
