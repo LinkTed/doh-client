@@ -189,6 +189,7 @@ fn get_activation_socket() -> Result<net::UdpSocket, Error> {
 
 #[cfg(target_family="windows")]
 fn get_activation_socket() -> Result<net::UdpSocket, Error> {
+    use std::io::ErrorKind::Other;
     Err(Error::new(Other, "This is not supported in windows platforms"))
 }
 
