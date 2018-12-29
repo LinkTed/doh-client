@@ -19,6 +19,9 @@ categories = [
     "network-programming"
     ]
 
+[badges]
+travis-ci = { repository = "LinkTed/doh-client" }
+
 [dependencies]
 libc = "0.2.45"
 log = "0.4.6"

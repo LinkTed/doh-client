@@ -2,6 +2,7 @@
 `doh-client` is a DNS over HTTPS client, which opens a local UDP (DNS) port and forwards all DNS queries to a remote
 HTTP/2.0 server. By default, the client will connect to the Cloudflare DNS service. It uses [Tokio](https://tokio.rs/)
 for all asynchronous IO operations and [Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server.  
+[![Build Status](https://travis-ci.org/LinkTed/doh-client.svg?branch=master)](https://travis-ci.org/LinkTed/doh-client)
 [![Latest version](https://img.shields.io/crates/v/doh-client.svg)](https://crates.io/crates/doh-client)
 [![License](https://img.shields.io/crates/l/doh-client.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
