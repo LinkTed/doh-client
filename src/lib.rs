@@ -22,21 +22,24 @@ use rustls::ClientConfig;
 
 use futures::sync::mpsc::unbounded;
 use futures::{Sink, Stream, Future};
-
 use futures::sync::mpsc::UnboundedSender;
+
 use futures_locks::Mutex;
 
+use h2::client::SendRequest;
+
+use bytes::Bytes;
 
 pub mod dns;
 use dns::{DnsPacket, DnsCodec, UdpListenSocket};
 
 mod http2;
 use http2::{create_config, Http2RequestFuture};
-use h2::client::SendRequest;
-use bytes::Bytes;
 
 pub mod logger;
 
+#[cfg(test)]
+mod tests;
 
 pub struct Config {
     listen_socket: UdpListenSocket,
