@@ -81,6 +81,11 @@ fn main() {
             .short("v")
             .multiple(true)
             .help("Sets the level of verbosity"))
+        .arg(Arg::with_name("get")
+            .short("g")
+            .long("get")
+            .help("Use GET method for the HTTP/2.0 request.")
+            .required(false))
         .get_matches();
 
     if let Err(e) = set_logger(&LOGGER) {
@@ -123,6 +128,7 @@ fn main() {
     let path = matches.value_of("path").unwrap();
     let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
     let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
+    let post: bool = !matches.is_present("get");
 
-    run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout));
+    run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout, post));
 }

@@ -5,6 +5,8 @@ use std::io::{BufReader, Error, ErrorKind};
 use std::thread::sleep;
 use std::time::Duration;
 
+use data_encoding::BASE64URL_NOPAD;
+
 use tokio_rustls::{Connect, TlsConnector, TlsStream};
 
 use tokio::timer::Timeout;
@@ -74,16 +76,26 @@ macro_rules! send_request {
     ($a:ident, $b:ident) => {
         {
             let config = &$a.context.config;
+            let post = config.post;
             let msg = &$a.msg;
 
-            let request = Request::builder()
-                .method("POST")
-                .uri(config.uri.clone())
-                .header("accept", "application/dns-message")
-                .header("content-type", "application/dns-message")
-                .header("content-length", msg.len().to_string())
-                .body(())
-                .unwrap();
+            let request = if post {
+                Request::builder()
+                    .method("POST")
+                    .uri(config.uri.clone())
+                    .header("accept", "application/dns-message")
+                    .header("content-type", "application/dns-message")
+                    .header("content-length", msg.len().to_string())
+                    .body(())
+                    .unwrap()
+            } else {
+                Request::builder()
+                    .method("GET")
+                    .uri(format!("{}?dns={}", config.uri, BASE64URL_NOPAD.encode(&msg.get_without_tid())))
+                    .header("accept", "application/dns-message")
+                    .body(())
+                    .unwrap()
+            };
 
             let id = (*$b).1;
 
@@ -91,12 +103,16 @@ macro_rules! send_request {
                 Some(ref mut send_request) => {
                     match send_request.send_request(request, false) {
                         Ok((response, mut request)) => {
-                            match request.send_data(msg.get_without_tid(), true) {
-                                Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs(config.timeout)), id),
-                                Err(e) => {
-                                    error!("send_data: {}", e);
-                                    CloseConnection($a.mutex_send_request.lock(), id)
+                            if post {
+                                match request.send_data(msg.get_without_tid(), true) {
+                                    Ok(()) => GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs(config.timeout)), id),
+                                    Err(e) => {
+                                        error!("send_data: {}", e);
+                                        CloseConnection($a.mutex_send_request.lock(), id)
+                                    }
                                 }
+                            } else {
+                                GetResponse(Http2ResponseFuture::new(response).timeout(Duration::from_secs(config.timeout)), id)
                             }
                         },
                         Err(e) => {

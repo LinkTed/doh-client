@@ -1,4 +1,5 @@
 extern crate libc;
+extern crate data_encoding;
 #[macro_use]
 extern crate log;
 extern crate tokio;
@@ -44,11 +45,12 @@ pub struct Config {
     client_config: ClientConfig,
     uri: String,
     retries: u32,
-    timeout: u64
+    timeout: u64,
+    post: bool
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) =>  client_config,
             Err(e) => {
@@ -59,7 +61,7 @@ impl Config {
 
         let uri = format!("https://{}/{}", domain, path);
 
-        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout}
+        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post}
     }
 }
 
