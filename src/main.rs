@@ -22,7 +22,7 @@ static LOGGER: Logger = Logger{};
 
 fn main() {
     let matches = App::new("DNS over HTTPS client")
-        .version("1.1.3")
+        .version("1.2.0")
         .author("link.ted@mailbox.org")
         .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default, the client will connect to the Cloudflare DNS service.")
         .arg(Arg::with_name("listen-addr")
@@ -59,6 +59,7 @@ fn main() {
             .default_value("3")
             .required(false))
         .arg(Arg::with_name("timeout")
+            .short("t")
             .long("timeout")
             .value_name("UNSIGNED LONG")
             .help("The time in seconds after that the connection would be closed if no response is received from the server")
