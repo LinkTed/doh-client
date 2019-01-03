@@ -85,7 +85,7 @@ fn main() {
         .arg(Arg::with_name("get")
             .short("g")
             .long("get")
-            .help("Use GET method for the HTTP/2.0 request.")
+            .help("Use GET method for the HTTP/2.0 request")
             .required(false))
         .get_matches();
 

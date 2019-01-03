@@ -101,7 +101,7 @@ USAGE:
     doh-client [FLAGS] [OPTIONS] --cafile <FILE>
 
 FLAGS:
-    -g, --get                  Use GET method for the HTTP/2.0 request.
+    -g, --get                  Use GET method for the HTTP/2.0 request
     -h, --help                 Prints help information
         --listen-activation    Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS
     -v                         Sets the level of verbosity
