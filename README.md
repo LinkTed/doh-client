@@ -92,7 +92,7 @@ will connect to the Cloudflare DNS service.
 certificates.
 ```
 $ ./doh-client --help
-DNS over HTTPS client 1.1.2
+DNS over HTTPS client 1.2.0
 link.ted@mailbox.org
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
@@ -101,6 +101,7 @@ USAGE:
     doh-client [FLAGS] [OPTIONS] --cafile <FILE>
 
 FLAGS:
+    -g, --get                  Use GET method for the HTTP/2.0 request
     -h, --help                 Prints help information
         --listen-activation    Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS
     -v                         Sets the level of verbosity
@@ -113,6 +114,6 @@ OPTIONS:
     -p, --path <STRING>              The path of the URI [default: dns-query]
     -r, --remote-addr <Addr>         Remote address [default: 1.1.1.1:443]
         --retries <UNSIGNED INT>     The number of retries to connect to the remote server [default: 3]
-        --timeout <UNSIGNED LONG>    The time in seconds after that the connection would be closed if no response is
+    -t, --timeout <UNSIGNED LONG>    The time in seconds after that the connection would be closed if no response is
                                      received from the server [default: 2]
 ```

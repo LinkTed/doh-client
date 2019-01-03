@@ -1,4 +1,5 @@
 extern crate libc;
+extern crate data_encoding;
 #[macro_use]
 extern crate log;
 extern crate tokio;
@@ -21,21 +22,24 @@ use rustls::ClientConfig;
 
 use futures::sync::mpsc::unbounded;
 use futures::{Sink, Stream, Future};
-
 use futures::sync::mpsc::UnboundedSender;
+
 use futures_locks::Mutex;
 
+use h2::client::SendRequest;
+
+use bytes::Bytes;
 
 pub mod dns;
 use dns::{DnsPacket, DnsCodec, UdpListenSocket};
 
 mod http2;
 use http2::{create_config, Http2RequestFuture};
-use h2::client::SendRequest;
-use bytes::Bytes;
 
 pub mod logger;
 
+#[cfg(test)]
+mod tests;
 
 pub struct Config {
     listen_socket: UdpListenSocket,
@@ -44,11 +48,12 @@ pub struct Config {
     client_config: ClientConfig,
     uri: String,
     retries: u32,
-    timeout: u64
+    timeout: u64,
+    post: bool
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) =>  client_config,
             Err(e) => {
@@ -59,7 +64,7 @@ impl Config {
 
         let uri = format!("https://{}/{}", domain, path);
 
-        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout}
+        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post}
     }
 }
 
