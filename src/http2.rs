@@ -29,6 +29,8 @@ use http::Request;
 
 use bytes::Bytes;
 
+use ttl_cache::TtlCache;
+
 use dns::DnsPacket;
 
 use ::Context;
@@ -48,14 +50,17 @@ pub fn create_config(cafile: &str) -> Result<ClientConfig, Error> {
 
 
 enum Http2RequestState {
+    GetMutexTtlCache(MutexFut<TtlCache<Bytes, Bytes>>),
     GetMutexSendRequest(MutexFut<(Option<SendRequest<Bytes>>, u32)>),
     GetConnection(MutexGuard<(Option<SendRequest<Bytes>>, u32)>, Http2ConnectionFuture, u32),
     GetResponse(Timeout<Http2ResponseFuture>, u32),
     CloseConnection(MutexFut<(Option<SendRequest<Bytes>>, u32)>, u32),
+    SaveInCache(MutexFut<TtlCache<Bytes, Bytes>>, Bytes, Duration),
 }
 
 pub struct Http2RequestFuture {
     mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>,
+    mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>>,
     state: Http2RequestState,
     context: Arc<Context>,
     msg: DnsPacket,
@@ -63,12 +68,17 @@ pub struct Http2RequestFuture {
 }
 
 impl Http2RequestFuture {
-    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>, msg: DnsPacket, addr: SocketAddr, context: Arc<Context>) -> Http2RequestFuture {
+    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>, mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>>, msg: DnsPacket, addr: SocketAddr, context: Arc<Context>) -> Http2RequestFuture {
+        use self::Http2RequestState::{GetMutexTtlCache, GetMutexSendRequest};
         debug!("Received UDP packet from {} {:#?}", addr, msg.get_tid());
 
-        let mutex_fut = mutex_send_request.lock();
+        let state = if context.config.cache {
+            GetMutexTtlCache(mutex_ttl_cache.lock())
+        } else {
+            GetMutexSendRequest(mutex_send_request.lock())
+        };
 
-        Http2RequestFuture{mutex_send_request, state: Http2RequestState::GetMutexSendRequest(mutex_fut), msg, addr, context}
+        Http2RequestFuture { mutex_send_request, mutex_ttl_cache, state, msg, addr, context }
     }
 }
 
@@ -136,116 +146,185 @@ impl Future for Http2RequestFuture {
         use self::Async::*;
         loop {
             self.state = match self.state {
+                GetMutexTtlCache(ref mut mutex_fut) => {
+                    match mutex_fut.poll() {
+                        Ok(async_) => {
+                            match async_ {
+                                Ready(mut guard) => {
+                                    match (*guard).get(&self.msg.get_without_tid()) {
+                                        Some(buffer) => {
+                                            debug!("GetMutexTtlCache: found in cache");
+                                            match DnsPacket::from_tid(buffer.clone(), self.msg.get_tid()) {
+                                                Ok(dns) => {
+                                                    match self.context.sender.unbounded_send((dns, self.addr)) {
+                                                        Ok(()) => return Ok(Ready(())),
+                                                        Err(e) => {
+                                                            error!("GetMutexTtlCache: unbounded_send: {}", e);
+                                                            return Err(());
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    debug!("GetMutexTtlCache: parse error: {}", e);
+                                                    Http2RequestState::GetMutexSendRequest(self.mutex_send_request.lock())
+                                                }
+                                            }
+                                        }
+                                        None => {
+                                            debug!("GetMutexTtlCache: missing in cache");
+                                            Http2RequestState::GetMutexSendRequest(self.mutex_send_request.lock())
+                                        }
+                                    }
+                                }
+                                NotReady => return Ok(NotReady)
+                            }
+                        }
+                        Err(_e) => {
+                            error!("GetMutexTtlCache: could not get mutex");
+                            Http2RequestState::GetMutexSendRequest(self.mutex_send_request.lock())
+                        }
+                    }
+                }
                 GetMutexSendRequest(ref mut mutex_fut) => {
                     let config = &self.context.config;
 
                     match mutex_fut.poll() {
-                        Ok(async) => {
-                            match async {
+                        Ok(async_) => {
+                            match async_ {
                                 Ready(mut guard) => {
                                     if (*guard).0.is_some() {
                                         send_request!(self, guard)
                                     } else {
                                         GetConnection(guard, Http2ConnectionFuture::new(config.remote_addr, config.client_config.clone(), config.domain.clone()), 1)
                                     }
-                                },
+                                }
                                 NotReady => return Ok(NotReady)
                             }
-                        },
+                        }
                         Err(_e) => {
-                            error!("Could not get mutex: GetMutexSendRequest");
+                            error!("GetMutexSendRequest: could not get mutex");
                             return Err(());
                         }
                     }
-                },
-                GetConnection(ref mut guard, ref mut http2_connection_future, ref mut try) => {
+                }
+                GetConnection(ref mut guard, ref mut http2_connection_future, ref mut tries) => {
                     let config = &self.context.config;
 
                     match http2_connection_future.poll() {
-                        Ok(async) => {
-                            match async {
+                        Ok(async_) => {
+                            match async_ {
                                 Ready((mut send_request, connection)) => {
                                     tokio::spawn(connection.map_err(|e| {
-                                        error!("H2 connection error: {}", e)
+                                        error!("GetConnection: H2 connection error: {}", e)
                                     }));
 
-                                    info!("Connection was successfully established to remote server {} ({})", config.remote_addr, config.domain);
+                                    info!("GetConnection: connection was successfully established to remote server {} ({})", config.remote_addr, config.domain);
 
                                     (*guard).0.replace(send_request);
                                     (*guard).1 += 1;
 
                                     send_request!(self, guard)
-                                },
+                                }
                                 NotReady => return Ok(NotReady)
                             }
-                        },
+                        }
                         Err(e) => {
-                            error!("Connection to remote server {} ({}) failed: {}: retry: {}", config.remote_addr, config.domain, e, *try);
+                            error!("GetConnection: connection to remote server {} ({}) failed: {}: retry: {}", config.remote_addr, config.domain, e, *tries);
                             sleep(Duration::from_secs(1));
 
-                            if config.retries > *try {
-                                *try += 1;
+                            if config.retries > *tries {
+                                *tries += 1;
                                 *http2_connection_future = Http2ConnectionFuture::new(config.remote_addr, config.client_config.clone(), config.domain.clone());
                                 continue;
                             } else {
-                                error!("Too many connection attempts to remote server {} ({})", config.remote_addr, config.domain);
+                                error!("GetConnection: too many connection attempts to remote server {} ({})", config.remote_addr, config.domain);
                                 return Err(());
                             }
                         }
                     }
-                },
+                }
                 GetResponse(ref mut http2_response_future, ref id) => {
                     match http2_response_future.poll() {
-                        Ok(async) => {
-                            match async {
-                                Ready(buffer) => {
+                        Ok(async_) => {
+                            match async_ {
+                                Ready(result) => {
+                                    let (buffer, duration) = result;
                                     match DnsPacket::from_tid(buffer, self.msg.get_tid()) {
                                         Ok(dns) => {
                                             if dns.is_response() {
-                                                match self.context.sender.unbounded_send((dns, self.addr)) {
-                                                    Ok(()) => return Ok(Ready(())),
+                                                let context = &self.context;
+
+                                                match context.sender.unbounded_send((dns.clone(), self.addr)) {
+                                                    Ok(()) => {
+                                                        if context.config.cache {
+                                                            if let Some(duration) = duration {
+                                                                SaveInCache(self.mutex_ttl_cache.lock(), dns.get_without_tid(), duration)
+                                                            } else {
+                                                                return Ok(Ready(()));
+                                                            }
+                                                        } else {
+                                                            return Ok(Ready(()));
+                                                        }
+                                                    }
                                                     Err(e) => {
-                                                        error!("GetBody: unbounded_send: {}", e);
+                                                        error!("GetResponse: unbounded_send: {}", e);
                                                         return Err(());
                                                     }
                                                 }
                                             } else {
-                                                error!("GetBody: get a non DNS response");
-                                                return Err(())
+                                                error!("GetResponse: get a non DNS response");
+                                                return Err(());
                                             }
-                                        },
+                                        }
                                         Err(e) => {
-                                            error!("GetBody: DNS parser error: {}", e);
+                                            error!("GetResponse: DNS parser error: {}", e);
                                             return Err(());
                                         }
                                     }
-                                },
+                                }
                                 NotReady => return Ok(NotReady)
                             }
-                        },
+                        }
                         Err(_e) => {
-                            error!("Timeout");
+                            error!("GetResponse: timeout");
                             CloseConnection(self.mutex_send_request.lock(), *id)
                         }
                     }
-                },
+                }
                 CloseConnection(ref mut mutex_fut, ref id) => {
                     match mutex_fut.poll() {
-                        Ok(async) => {
-                            match async {
+                        Ok(async_) => {
+                            match async_ {
                                 Ready(mut guard) => {
                                     if (*guard).1 == *id {
                                         (*guard).0.take();
                                     }
 
                                     return Err(());
-                                },
+                                }
                                 NotReady => return Ok(NotReady)
                             }
-                        },
+                        }
                         Err(_e) => {
-                            error!("Could not get mutex: CloseConnection");
-                            return Err(())
+                            error!("CloseConnection: could not get mutex");
+                            return Err(());
+                        }
+                    }
+                }
+                SaveInCache(ref mut mutex_fut, ref buffer, ref duration) => {
+                    match mutex_fut.poll() {
+                        Ok(async_) => {
+                            match async_ {
+                                Ready(mut guard) => {
+                                    (*guard).insert(self.msg.get_without_tid(), buffer.clone(), duration.clone());
+                                    return Ok(Ready(()));
+                                }
+                                NotReady => return Ok(NotReady)
+                            }
+                        }
+                        Err(_e) => {
+                            error!("SaveInCache: could not get mutex");
+                            return Err(());
                         }
                     }
                 }
@@ -269,7 +348,7 @@ pub struct Http2ConnectionFuture {
 
 impl Http2ConnectionFuture {
     pub fn new(remote_addr: SocketAddr, config: ClientConfig, domain: String) -> Http2ConnectionFuture {
-        Http2ConnectionFuture{state: Http2ConnectionState::GetTcpConnection(TcpStream::connect(&remote_addr)), tls_connector: TlsConnector::from(Arc::new(config)), domain}
+        Http2ConnectionFuture { state: Http2ConnectionState::GetTcpConnection(TcpStream::connect(&remote_addr)), tls_connector: TlsConnector::from(Arc::new(config)), domain }
     }
 }
 
@@ -284,39 +363,39 @@ impl Future for Http2ConnectionFuture {
             self.state = match self.state {
                 GetTcpConnection(ref mut future) => {
                     match future.poll() {
-                        Ok(async) => {
-                            match async {
+                        Ok(async_) => {
+                            match async_ {
                                 Ready(tcp) => {
                                     if let Err(e) = tcp.set_keepalive(Some(Duration::from_secs(1))) {
-                                        error!("Could not set keepalive on TCP: {}", e);
+                                        error!("GetTcpConnection: could not set keepalive on TCP: {}", e);
                                     }
 
                                     if let Err(e) = tcp.set_nodelay(true) {
-                                        error!("Could not set nodelay on TCP: {}", e);
+                                        error!("GetTcpConnection: could not set nodelay on TCP: {}", e);
                                     }
 
                                     GetTlsConnection(self.tls_connector.connect(DNSNameRef::try_from_ascii_str(&self.domain).unwrap(), tcp))
-                                },
+                                }
                                 NotReady => return Ok(NotReady),
                             }
-                        },
+                        }
                         Err(e) => return Err(e)
                     }
-                },
+                }
                 GetTlsConnection(ref mut connect) => {
                     match connect.poll() {
-                        Ok(async) => {
-                            match async {
+                        Ok(async_) => {
+                            match async_ {
                                 Ready(tls) => GetHttp2Connection(handshake(tls)),
                                 NotReady => return Ok(NotReady),
                             }
-                        },
+                        }
                         Err(e) => return Err(e)
                     }
-                },
+                }
                 GetHttp2Connection(ref mut handshake) => {
                     match handshake.poll() {
-                        Ok(async) => return Ok(async),
+                        Ok(async_) => return Ok(async_),
                         Err(e) => return Err(Error::new(ErrorKind::Other, e))
                     }
                 }
@@ -333,53 +412,67 @@ enum Http2ResponseState {
 pub struct Http2ResponseFuture {
     state: Http2ResponseState,
     buffer: Bytes,
+    duration: Option<Duration>,
 }
 
 impl Http2ResponseFuture {
     pub fn new(response_future: ResponseFuture) -> Http2ResponseFuture {
-        Http2ResponseFuture {state: Http2ResponseState::GetResponse(response_future), buffer: Bytes::new()}
+        Http2ResponseFuture { state: Http2ResponseState::GetResponse(response_future), buffer: Bytes::new(), duration: None }
     }
 }
 
 impl Future for Http2ResponseFuture {
-    type Item = Bytes;
+    type Item = (Bytes, Option<Duration>);
     type Error = ();
 
-    fn poll(&mut self) -> Result<Async<Bytes>, ()> {
+    fn poll(&mut self) -> Result<Async<(Bytes, Option<Duration>)>, ()> {
         use self::Http2ResponseState::*;
         use self::Async::*;
         loop {
             self.state = match self.state {
                 GetResponse(ref mut future) => {
                     match future.poll() {
-                        Ok(async) => {
-                            match async {
+                        Ok(async_) => {
+                            match async_ {
                                 Ready(response) => {
                                     let (header, body) = response.into_parts();
 
                                     if header.status != 200 {
                                         error!("GetResponse: header.status != 200");
-                                        return Err(())
+                                        return Err(());
                                     }
 
-                                    match header.headers.get("content-type") {
+                                    let headers = &header.headers;
+
+                                    match headers.get("content-type") {
                                         Some(value) => {
                                             if value != "application/dns-message" {
                                                 error!("GetResponse: content-type != application/dns-message");
-                                                return Err(())
+                                                return Err(());
                                             }
                                         }
                                         None => {
                                             error!("GetResponse: content-type is None");
-                                            return Err(())
+                                            return Err(());
+                                        }
+                                    }
+
+                                    if let Some(value) = headers.get("cache-control") {
+                                        for i in value.to_str().unwrap().split(",") {
+                                            let key_value: Vec<&str> = i.splitn(2, "=").map(|s| s.trim()).collect();
+                                            if key_value.len() == 2 && key_value[0] == "max-age" {
+                                                if let Ok(value) = key_value[1].parse::<u64>() {
+                                                    self.duration = Some(Duration::from_secs(value));
+                                                }
+                                            }
                                         }
                                     }
 
                                     GetBody(body)
-                                },
+                                }
                                 NotReady => return Ok(NotReady),
                             }
-                        },
+                        }
                         Err(e) => {
                             error!("GetResponse: {}", e);
                             return Err(());
@@ -389,8 +482,8 @@ impl Future for Http2ResponseFuture {
                 GetBody(ref mut stream) => {
                     loop {
                         match stream.poll() {
-                            Ok(async) => {
-                                match async {
+                            Ok(async_) => {
+                                match async_ {
                                     Ready(mut body) => {
                                         if let Some(b) = body {
                                             let buffer_len = self.buffer.len();
@@ -405,16 +498,16 @@ impl Future for Http2ResponseFuture {
                                             }
 
                                             match stream.release_capacity().release_capacity(b_len) {
-                                                Ok(()) => {},
+                                                Ok(()) => {}
                                                 Err(e) => error!("GetBody: release_capacity: {}", e)
                                             }
                                         } else {
-                                            return Ok(Ready(self.buffer.clone()));
+                                            return Ok(Ready((self.buffer.clone(), self.duration)));
                                         }
-                                    },
+                                    }
                                     NotReady => return Ok(NotReady),
                                 }
-                            },
+                            }
                             Err(e) => {
                                 error!("GetBody: {}", e);
                                 return Err(());

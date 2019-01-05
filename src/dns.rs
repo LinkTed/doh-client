@@ -35,7 +35,7 @@ impl Display for DnsParserError {
 #[derive(Copy, Clone)]
 pub enum UdpListenSocket {
     Addr(SocketAddr),
-    Activation
+    Activation,
 }
 
 impl Display for UdpListenSocket {
@@ -51,14 +51,15 @@ impl Display for UdpListenSocket {
                 } else {
                     write!(f, "this is not supported")
                 }
-            },
+            }
         }
     }
 }
 
+#[derive(Clone)]
 pub struct DnsPacket {
     data: Bytes,
-    tid: [u8;2],
+    tid: [u8; 2],
     response: bool,
     questions: u16,
     answer: u16,
@@ -71,7 +72,7 @@ impl DnsPacket {
         DnsPacket::parser(buffer)
     }
 
-    pub fn from_tid(buffer: Bytes, tid: [u8;2]) -> Result<DnsPacket, DnsParserError> {
+    pub fn from_tid(buffer: Bytes, tid: [u8; 2]) -> Result<DnsPacket, DnsParserError> {
         let mut buffer = BytesMut::from(buffer);
         buffer[0] = tid[0];
         buffer[1] = tid[1];
@@ -80,17 +81,18 @@ impl DnsPacket {
     }
 
     fn parser(buffer: Bytes) -> Result<DnsPacket, DnsParserError> {
+        use self::DnsParserError::{TooLittleData, TooMuchData};
         let len = buffer.len();
 
         if len < 12 {
-            return Err(DnsParserError::TooLittleData);
+            return Err(TooLittleData);
         } else if 512 < len {
-            return Err(DnsParserError::TooMuchData);
+            return Err(TooMuchData);
         }
 
         let response = (buffer[2] & 0x80) == 0x80;
 
-        let mut tid: [u8;2] = [0;2];
+        let mut tid: [u8; 2] = [0; 2];
         tid.copy_from_slice(&buffer[0..2]);
 
         let questions: u16 = ((buffer[4] as u16) << 8) | (buffer[5] as u16);
@@ -98,7 +100,7 @@ impl DnsPacket {
         let authority: u16 = ((buffer[8] as u16) << 8) | (buffer[9] as u16);
         let additional_records: u16 = ((buffer[10] as u16) << 8) | (buffer[11] as u16);
 
-        Ok(DnsPacket{data: buffer, tid, response, questions, answer, authority, additional_records})
+        Ok(DnsPacket { data: buffer, tid, response, questions, answer, authority, additional_records })
     }
 
     pub fn len(&self) -> usize {
@@ -118,7 +120,7 @@ impl DnsPacket {
         self.data.clone()
     }
 
-    pub fn get_tid(&self) -> [u8;2] {
+    pub fn get_tid(&self) -> [u8; 2] {
         self.tid.clone()
     }
 
@@ -143,17 +145,17 @@ impl DnsPacket {
     }
 }
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 use std::os::raw::{c_int, c_char, c_void};
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 use libc::size_t;
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 extern {
-    fn launch_activate_socket(name: *const c_char, fds: *mut * mut c_int, cnt: *mut size_t) -> c_int;
+    fn launch_activate_socket(name: *const c_char, fds: *mut *mut c_int, cnt: *mut size_t) -> c_int;
 }
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     use std::ffi::CString;
     use std::os::unix::io::FromRawFd;
@@ -179,7 +181,7 @@ fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     }
 }
 
-#[cfg(all(target_family="unix",not(target_os="macos")))]
+#[cfg(all(target_family = "unix", not(target_os = "macos")))]
 fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     use std::os::unix::io::FromRawFd;
     unsafe {
@@ -187,7 +189,7 @@ fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     }
 }
 
-#[cfg(target_family="windows")]
+#[cfg(target_family = "windows")]
 fn get_activation_socket() -> Result<net::UdpSocket, Error> {
     use std::io::ErrorKind::Other;
     Err(Error::new(Other, "This is not supported in windows platforms"))
@@ -208,7 +210,7 @@ impl DnsCodec {
                             Ok(socket) => socket,
                             Err(e) => return Err(e)
                         }
-                    },
+                    }
                     Err(e) => return Err(e)
                 }
             }
@@ -224,7 +226,7 @@ impl Decoder for DnsCodec {
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<DnsPacket>, io::Error> {
         if let Ok(dns) = DnsPacket::from(buf.clone().freeze()) {
             if dns.is_response() == false && dns.get_questions() > 0 {
-                return Ok(Some(dns))
+                return Ok(Some(dns));
             }
         }
 

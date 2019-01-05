@@ -11,6 +11,7 @@ extern crate futures_locks;
 extern crate h2;
 extern crate tokio_rustls;
 extern crate webpki;
+extern crate ttl_cache;
 
 
 use std::net::SocketAddr;
@@ -30,10 +31,14 @@ use h2::client::SendRequest;
 
 use bytes::Bytes;
 
+use ttl_cache::TtlCache;
+
 pub mod dns;
+
 use dns::{DnsPacket, DnsCodec, UdpListenSocket};
 
 mod http2;
+
 use http2::{create_config, Http2RequestFuture};
 
 pub mod logger;
@@ -49,13 +54,14 @@ pub struct Config {
     uri: String,
     retries: u32,
     timeout: u64,
-    post: bool
+    post: bool,
+    cache: bool,
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool, cache: bool) -> Config {
         let client_config = match create_config(&cafile) {
-            Ok(client_config) =>  client_config,
+            Ok(client_config) => client_config,
             Err(e) => {
                 error!("Cannot open cafile: {}: {}", cafile, e);
                 exit(1);
@@ -64,18 +70,18 @@ impl Config {
 
         let uri = format!("https://{}/{}", domain, path);
 
-        Config {listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post}
+        Config { listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post, cache }
     }
 }
 
 pub struct Context {
     config: Config,
-    sender: UnboundedSender<(DnsPacket, SocketAddr)>
+    sender: UnboundedSender<(DnsPacket, SocketAddr)>,
 }
 
 impl Context {
     pub fn new(config: Config, sender: UnboundedSender<(DnsPacket, SocketAddr)>) -> Context {
-        Context{config, sender}
+        Context { config, sender }
     }
 }
 
@@ -98,12 +104,13 @@ pub fn run(config: Config) {
         .map_err(|e| error!("dns_sink: {}", e));
 
     let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)> = Mutex::new((None, 0));
+    let mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>> = Mutex::new(TtlCache::new(4));
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
-        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), msg, addr, context.clone()));
+        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_ttl_cache.clone(), msg, addr, context.clone()));
 
         Ok(())
     });
-    tokio::run(dns_queries.map_err(|e| {error!("UDP socket err: {}", e)}).join(dns_sink).map(|(_a, _b)| {
+    tokio::run(dns_queries.map_err(|e| { error!("UDP socket err: {}", e) }).join(dns_sink).map(|(_a, _b)| {
         error!("UDP error")
     }));
 }
