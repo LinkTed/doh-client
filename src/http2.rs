@@ -153,7 +153,7 @@ impl Future for Http2RequestFuture {
                                 Ready(mut guard) => {
                                     match (*guard).get(&self.msg.get_without_tid()) {
                                         Some(buffer) => {
-                                            info!("GetMutexTtlCache: found in cache");
+                                            debug!("GetMutexTtlCache: found in cache");
                                             match DnsPacket::from_tid(buffer.clone(), self.msg.get_tid()) {
                                                 Ok(dns) => {
                                                     match self.context.sender.unbounded_send((dns, self.addr)) {
