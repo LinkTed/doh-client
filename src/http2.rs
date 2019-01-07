@@ -165,7 +165,7 @@ impl Future for Http2RequestFuture {
                                                     }
                                                 }
                                                 Err(e) => {
-                                                    debug!("GetMutexTtlCache: parse error: {}", e);
+                                                    error!("GetMutexTtlCache: parse error: {}", e);
                                                     Http2RequestState::GetMutexSendRequest(self.mutex_send_request.lock())
                                                 }
                                             }
