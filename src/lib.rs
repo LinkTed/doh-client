@@ -17,7 +17,6 @@ extern crate ttl_cache;
 use std::net::SocketAddr;
 use std::process::exit;
 use std::io::{Error, ErrorKind};
-use std::sync::Arc;
 
 use rustls::ClientConfig;
 
@@ -95,7 +94,8 @@ pub fn run(config: Config) {
         }
     };
     let (sender, receiver) = unbounded::<(DnsPacket, SocketAddr)>();
-    let context = Arc::new(Context::new(config, sender));
+    let context: &'static Context = Box::leak(Box::new(Context::new(config, sender)));
+
 
     let dns_sink = dns_sink.send_all(receiver
         .map_err(|_| {
@@ -106,7 +106,7 @@ pub fn run(config: Config) {
     let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)> = Mutex::new((None, 0));
     let mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>> = Mutex::new(TtlCache::new(4));
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
-        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_ttl_cache.clone(), msg, addr, context.clone()));
+        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_ttl_cache.clone(), msg, addr, context));
 
         Ok(())
     });

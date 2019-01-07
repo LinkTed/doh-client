@@ -62,13 +62,13 @@ pub struct Http2RequestFuture {
     mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>,
     mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>>,
     state: Http2RequestState,
-    context: Arc<Context>,
+    context: &'static Context,
     msg: DnsPacket,
     addr: SocketAddr,
 }
 
 impl Http2RequestFuture {
-    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>, mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>>, msg: DnsPacket, addr: SocketAddr, context: Arc<Context>) -> Http2RequestFuture {
+    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>, mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>>, msg: DnsPacket, addr: SocketAddr, context: &'static Context) -> Http2RequestFuture {
         use self::Http2RequestState::{GetMutexTtlCache, GetMutexSendRequest};
         debug!("Received UDP packet from {} {:#?}", addr, msg.get_tid());
 
