@@ -206,7 +206,7 @@ impl DnsCodec {
             Activation => {
                 match get_activation_socket() {
                     Ok(socket) => {
-                        match UdpSocket::from_std(socket, &Handle::current()) {
+                        match UdpSocket::from_std(socket, &Handle::default()) {
                             Ok(socket) => socket,
                             Err(e) => return Err(e)
                         }
