@@ -54,11 +54,11 @@ pub struct Config {
     retries: u32,
     timeout: u64,
     post: bool,
-    cache: bool,
+    cache_size: usize,
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool, cache: bool) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool, cache_size: usize) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) => client_config,
             Err(e) => {
@@ -69,7 +69,7 @@ impl Config {
 
         let uri = format!("https://{}/{}", domain, path);
 
-        Config { listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post, cache }
+        Config { listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post, cache_size }
     }
 }
 
@@ -104,7 +104,7 @@ pub fn run(config: Config) {
         .map_err(|e| error!("dns_sink: {}", e));
 
     let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)> = Mutex::new((None, 0));
-    let mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>> = Mutex::new(TtlCache::new(4));
+    let mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>> = Mutex::new(TtlCache::new(context.config.cache_size));
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
         tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_ttl_cache.clone(), msg, addr, context));
 

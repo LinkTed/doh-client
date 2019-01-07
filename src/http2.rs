@@ -72,10 +72,10 @@ impl Http2RequestFuture {
         use self::Http2RequestState::{GetMutexTtlCache, GetMutexSendRequest};
         debug!("Received UDP packet from {} {:#?}", addr, msg.get_tid());
 
-        let state = if context.config.cache {
-            GetMutexTtlCache(mutex_ttl_cache.lock())
-        } else {
+        let state = if context.config.cache_size == 0 {
             GetMutexSendRequest(mutex_send_request.lock())
+        } else {
+            GetMutexTtlCache(mutex_ttl_cache.lock())
         };
 
         Http2RequestFuture { mutex_send_request, mutex_ttl_cache, state, msg, addr, context }
@@ -256,14 +256,14 @@ impl Future for Http2RequestFuture {
 
                                                 match context.sender.unbounded_send((dns.clone(), self.addr)) {
                                                     Ok(()) => {
-                                                        if context.config.cache {
+                                                        if context.config.cache_size == 0 {
+                                                            return Ok(Ready(()));
+                                                        } else {
                                                             if let Some(duration) = duration {
                                                                 SaveInCache(self.mutex_ttl_cache.lock(), dns.get_without_tid(), duration)
                                                             } else {
                                                                 return Ok(Ready(()));
                                                             }
-                                                        } else {
-                                                            return Ok(Ready(()));
                                                         }
                                                     }
                                                     Err(e) => {
