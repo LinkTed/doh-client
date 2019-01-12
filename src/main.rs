@@ -17,12 +17,13 @@ use std::process::exit;
 
 use doh_client::dns::UdpListenSocket::*;
 
+
 static LOGGER: Logger = Logger {};
 
 
 fn main() {
     let matches = App::new("DNS over HTTPS client")
-        .version("1.3.0")
+        .version("1.3.2")
         .author("link.ted@mailbox.org")
         .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default, the client will connect to the Cloudflare DNS service.")
         .arg(Arg::with_name("listen-addr")
@@ -87,10 +88,15 @@ fn main() {
             .long("get")
             .help("Use the GET method for the HTTP/2.0 request")
             .required(false))
-        .arg(Arg::with_name("no-cache")
-            .short("n")
-            .long("no-cache")
-            .help("Do not use the private HTTP cache (ignores cache-control)")
+        .arg(Arg::with_name("cache-size")
+            .long("cache-size")
+            .value_name("UNSIGNED LONG")
+            .help("The size of the private HTTP cache\nIf the size is 0 then the private HTTP cache is not used (ignores cache-control)")
+            .default_value("1024")
+            .required(false))
+        .arg(Arg::with_name("cache-fallback")
+            .long("cache-fallback")
+            .help("Use expired cache entries if no response is received from the server")
             .required(false))
         .get_matches();
 
@@ -135,7 +141,8 @@ fn main() {
     let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
     let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
     let post: bool = !matches.is_present("get");
-    let cache: bool = !matches.is_present("no-cache");
+    let cache_size: usize = value_t!(matches, "cache-size", usize).unwrap_or(1024);
+    let cache_fallback: bool = matches.is_present("cache-fallback");
 
-    run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout, post, cache));
+    run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout, post, cache_size, cache_fallback));
 }
