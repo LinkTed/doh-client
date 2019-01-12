@@ -11,7 +11,6 @@ extern crate futures_locks;
 extern crate h2;
 extern crate tokio_rustls;
 extern crate webpki;
-extern crate ttl_cache;
 
 
 use std::net::SocketAddr;
@@ -20,9 +19,8 @@ use std::io::{Error, ErrorKind};
 
 use rustls::ClientConfig;
 
-use futures::sync::mpsc::unbounded;
+use futures::sync::mpsc::{unbounded, UnboundedSender};
 use futures::{Sink, Stream, Future};
-use futures::sync::mpsc::UnboundedSender;
 
 use futures_locks::Mutex;
 
@@ -30,7 +28,7 @@ use h2::client::SendRequest;
 
 use bytes::Bytes;
 
-use ttl_cache::TtlCache;
+pub mod logger;
 
 pub mod dns;
 
@@ -40,10 +38,13 @@ mod http2;
 
 use http2::{create_config, Http2RequestFuture};
 
-pub mod logger;
+mod cache;
+
+use cache::Cache;
 
 #[cfg(test)]
 mod tests;
+
 
 pub struct Config {
     listen_socket: UdpListenSocket,
@@ -55,10 +56,11 @@ pub struct Config {
     timeout: u64,
     post: bool,
     cache_size: usize,
+    cache_fallback: bool,
 }
 
 impl Config {
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool, cache_size: usize) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool, cache_size: usize, cache_fallback: bool) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) => client_config,
             Err(e) => {
@@ -69,7 +71,12 @@ impl Config {
 
         let uri = format!("https://{}/{}", domain, path);
 
-        Config { listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post, cache_size }
+        if cache_fallback && cache_size == 0 {
+            error!("cache size is zero and cache fallback is enabled simultaneously");
+            exit(1);
+        }
+
+        Config { listen_socket, remote_addr, domain: domain.to_string(), client_config, uri, retries, timeout, post, cache_size, cache_fallback }
     }
 }
 
@@ -85,7 +92,7 @@ impl Context {
 }
 
 pub fn run(config: Config) {
-    // UDP
+    // === BEGIN UDP SETUP ===
     let (dns_sink, dns_stream) = match DnsCodec::new(config.listen_socket) {
         Ok(result) => result,
         Err(e) => {
@@ -94,22 +101,23 @@ pub fn run(config: Config) {
         }
     };
     let (sender, receiver) = unbounded::<(DnsPacket, SocketAddr)>();
-    let context: &'static Context = Box::leak(Box::new(Context::new(config, sender)));
-
-
     let dns_sink = dns_sink.send_all(receiver
         .map_err(|_| {
             Error::new(ErrorKind::Other, "receiver")
         }))
         .map_err(|e| error!("dns_sink: {}", e));
+    // === END UDP SETUP ===
+
+    let context: &'static Context = Box::leak(Box::new(Context::new(config, sender)));
 
     let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)> = Mutex::new((None, 0));
-    let mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>> = Mutex::new(TtlCache::new(context.config.cache_size));
+    let mutex_cache: Mutex<Cache<Bytes, Bytes>> = Mutex::new(Cache::new(context.config.cache_size));
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
-        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_ttl_cache.clone(), msg, addr, context));
+        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_cache.clone(), msg, addr, context));
 
         Ok(())
     });
+
     tokio::run(dns_queries.map_err(|e| { error!("UDP socket err: {}", e) }).join(dns_sink).map(|(_a, _b)| {
         error!("UDP error")
     }));

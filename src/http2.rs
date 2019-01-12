@@ -29,13 +29,15 @@ use http::Request;
 
 use bytes::Bytes;
 
-use ttl_cache::TtlCache;
+use cache::Cache;
 
 use dns::DnsPacket;
 
 use ::Context;
 
+
 const ALPN_H2: &str = "h2";
+
 
 pub fn create_config(cafile: &str) -> Result<ClientConfig, Error> {
     let certfile = File::open(&cafile)?;
@@ -50,17 +52,18 @@ pub fn create_config(cafile: &str) -> Result<ClientConfig, Error> {
 
 
 enum Http2RequestState {
-    GetMutexTtlCache(MutexFut<TtlCache<Bytes, Bytes>>),
+    GetMutexCache(MutexFut<Cache<Bytes, Bytes>>),
     GetMutexSendRequest(MutexFut<(Option<SendRequest<Bytes>>, u32)>),
     GetConnection(MutexGuard<(Option<SendRequest<Bytes>>, u32)>, Http2ConnectionFuture, u32),
     GetResponse(Timeout<Http2ResponseFuture>, u32),
     CloseConnection(MutexFut<(Option<SendRequest<Bytes>>, u32)>, u32),
-    SaveInCache(MutexFut<TtlCache<Bytes, Bytes>>, Bytes, Duration),
+    GetMutexCacheFallback(MutexFut<Cache<Bytes, Bytes>>),
+    SaveInCache(MutexFut<Cache<Bytes, Bytes>>, Bytes, Duration),
 }
 
 pub struct Http2RequestFuture {
     mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>,
-    mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>>,
+    mutex_cache: Mutex<Cache<Bytes, Bytes>>,
     state: Http2RequestState,
     context: &'static Context,
     msg: DnsPacket,
@@ -68,17 +71,17 @@ pub struct Http2RequestFuture {
 }
 
 impl Http2RequestFuture {
-    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>, mutex_ttl_cache: Mutex<TtlCache<Bytes, Bytes>>, msg: DnsPacket, addr: SocketAddr, context: &'static Context) -> Http2RequestFuture {
-        use self::Http2RequestState::{GetMutexTtlCache, GetMutexSendRequest};
+    pub fn new(mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)>, mutex_cache: Mutex<Cache<Bytes, Bytes>>, msg: DnsPacket, addr: SocketAddr, context: &'static Context) -> Http2RequestFuture {
+        use self::Http2RequestState::{GetMutexCache, GetMutexSendRequest};
         debug!("Received UDP packet from {} {:#?}", addr, msg.get_tid());
 
         let state = if context.config.cache_size == 0 {
             GetMutexSendRequest(mutex_send_request.lock())
         } else {
-            GetMutexTtlCache(mutex_ttl_cache.lock())
+            GetMutexCache(mutex_cache.lock())
         };
 
-        Http2RequestFuture { mutex_send_request, mutex_ttl_cache, state, msg, addr, context }
+        Http2RequestFuture { mutex_send_request, mutex_cache, state, msg, addr, context }
     }
 }
 
@@ -146,33 +149,39 @@ impl Future for Http2RequestFuture {
         use self::Async::*;
         loop {
             self.state = match self.state {
-                GetMutexTtlCache(ref mut mutex_fut) => {
+                GetMutexCache(ref mut mutex_fut) => {
                     match mutex_fut.poll() {
                         Ok(async_) => {
                             match async_ {
                                 Ready(mut guard) => {
-                                    match (*guard).get(&self.msg.get_without_tid()) {
+                                    let result = if self.context.config.cache_fallback {
+                                        (*guard).get_expired(&self.msg.get_without_tid())
+                                    } else {
+                                        (*guard).get(&self.msg.get_without_tid())
+                                    };
+
+                                    match result {
                                         Some(buffer) => {
-                                            debug!("GetMutexTtlCache: found in cache");
-                                            match DnsPacket::from_tid(buffer.clone(), self.msg.get_tid()) {
+                                            debug!("GetMutexCache: found in cache");
+                                            match DnsPacket::from_tid((*buffer).clone(), self.msg.get_tid()) {
                                                 Ok(dns) => {
                                                     match self.context.sender.unbounded_send((dns, self.addr)) {
                                                         Ok(()) => return Ok(Ready(())),
                                                         Err(e) => {
-                                                            error!("GetMutexTtlCache: unbounded_send: {}", e);
+                                                            error!("GetMutexCache: unbounded_send: {}", e);
                                                             return Err(());
                                                         }
                                                     }
                                                 }
                                                 Err(e) => {
-                                                    error!("GetMutexTtlCache: parse error: {}", e);
-                                                    Http2RequestState::GetMutexSendRequest(self.mutex_send_request.lock())
+                                                    error!("GetMutexCache: parse error: {}", e);
+                                                    GetMutexSendRequest(self.mutex_send_request.lock())
                                                 }
                                             }
                                         }
                                         None => {
-                                            debug!("GetMutexTtlCache: missing in cache");
-                                            Http2RequestState::GetMutexSendRequest(self.mutex_send_request.lock())
+                                            debug!("GetMutexCache: missing in cache");
+                                            GetMutexSendRequest(self.mutex_send_request.lock())
                                         }
                                     }
                                 }
@@ -180,7 +189,7 @@ impl Future for Http2RequestFuture {
                             }
                         }
                         Err(_e) => {
-                            error!("GetMutexTtlCache: could not get mutex");
+                            error!("GetMutexCache: could not get mutex");
                             Http2RequestState::GetMutexSendRequest(self.mutex_send_request.lock())
                         }
                     }
@@ -238,7 +247,12 @@ impl Future for Http2RequestFuture {
                                 continue;
                             } else {
                                 error!("GetConnection: too many connection attempts to remote server {} ({})", config.remote_addr, config.domain);
-                                return Err(());
+
+                                if self.context.config.cache_fallback {
+                                    GetMutexCacheFallback(self.mutex_cache.lock())
+                                } else {
+                                    return Err(());
+                                }
                             }
                         }
                     }
@@ -260,7 +274,7 @@ impl Future for Http2RequestFuture {
                                                             return Ok(Ready(()));
                                                         } else {
                                                             if let Some(duration) = duration {
-                                                                SaveInCache(self.mutex_ttl_cache.lock(), dns.get_without_tid(), duration)
+                                                                SaveInCache(self.mutex_cache.lock(), dns.get_without_tid(), duration)
                                                             } else {
                                                                 return Ok(Ready(()));
                                                             }
@@ -300,7 +314,11 @@ impl Future for Http2RequestFuture {
                                         (*guard).0.take();
                                     }
 
-                                    return Err(());
+                                    if self.context.config.cache_fallback {
+                                        GetMutexCacheFallback(self.mutex_cache.lock())
+                                    } else {
+                                        return Err(());
+                                    }
                                 }
                                 NotReady => return Ok(NotReady)
                             }
@@ -311,12 +329,51 @@ impl Future for Http2RequestFuture {
                         }
                     }
                 }
+                GetMutexCacheFallback(ref mut mutex_fut) => {
+                    match mutex_fut.poll() {
+                        Ok(async_) => {
+                            match async_ {
+                                Ready(mut guard) => {
+                                    match (*guard).get_expired_fallback(&self.msg.get_without_tid()) {
+                                        Some(buffer) => {
+                                            debug!("GetMutexCacheFallback: found in cache");
+                                            match DnsPacket::from_tid((*buffer).clone(), self.msg.get_tid()) {
+                                                Ok(dns) => {
+                                                    match self.context.sender.unbounded_send((dns, self.addr)) {
+                                                        Ok(()) => return Ok(Ready(())),
+                                                        Err(e) => {
+                                                            error!("GetMutexCache: unbounded_send: {}", e);
+                                                            return Err(());
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    error!("GetMutexCacheFallback: parse error: {}", e);
+                                                    return Err(())
+                                                }
+                                            }
+                                        }
+                                        None => {
+                                            debug!("GetMutexCacheFallback: missing in cache");
+                                            return Err(())
+                                        }
+                                    }
+                                }
+                                NotReady => return Ok(NotReady)
+                            }
+                        }
+                        Err(_e) => {
+                            error!("GetMutexCacheFallback: could not get mutex");
+                            return Err(());
+                        }
+                    }
+                }
                 SaveInCache(ref mut mutex_fut, ref buffer, ref duration) => {
                     match mutex_fut.poll() {
                         Ok(async_) => {
                             match async_ {
                                 Ready(mut guard) => {
-                                    (*guard).insert(self.msg.get_without_tid(), buffer.clone(), duration.clone());
+                                    (*guard).put(self.msg.get_without_tid(), buffer.clone(), duration.clone());
                                     return Ok(Ready(()));
                                 }
                                 NotReady => return Ok(NotReady)
@@ -462,7 +519,7 @@ impl Future for Http2ResponseFuture {
                                             let key_value: Vec<&str> = i.splitn(2, "=").map(|s| s.trim()).collect();
                                             if key_value.len() == 2 && key_value[0] == "max-age" {
                                                 if let Ok(value) = key_value[1].parse::<u64>() {
-                                                    self.duration = Some(Duration::from_secs(value));
+                                                    self.duration.replace(Duration::from_secs(value));
                                                 }
                                             }
                                         }
