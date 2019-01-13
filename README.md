@@ -3,7 +3,7 @@
 HTTP/2.0 server. By default, the client will connect to the Cloudflare DNS service. It uses [Tokio](https://tokio.rs/)
 for all asynchronous IO operations and [Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server.
 The client uses a private HTTP cache (see [RFC 7234](https://tools.ietf.org/html/rfc7234#section-5.2)) to increase the 
-performance if the flag `--no-cache` is not used.
+performance if the `--cache-size` is not zero.
 [![Build Status](https://travis-ci.org/LinkTed/doh-client.svg?branch=master)](https://travis-ci.org/LinkTed/doh-client)
 [![Latest version](https://img.shields.io/crates/v/doh-client.svg)](https://crates.io/crates/doh-client)
 [![License](https://img.shields.io/crates/l/doh-client.svg)](https://opensource.org/licenses/BSD-3-Clause)
