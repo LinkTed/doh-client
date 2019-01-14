@@ -43,7 +43,6 @@
     <array>
       <string>/usr/local/bin/doh-client</string>
       <string>--listen-activation</string>
-      <string>--cafile</string>
       <string>/usr/local/share/doh-client/DigiCert_Global_Root_CA.pem</string>
     </array>
 
