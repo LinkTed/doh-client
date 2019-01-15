@@ -1,0 +1,55 @@
+#compdef doh-client
+
+autoload -U is-at-least
+
+_doh-client() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" \
+'(--listen-activation)-l+[Listen address \[default: 127.0.0.1:53\]]' \
+'(--listen-activation)--listen-addr=[Listen address \[default: 127.0.0.1:53\]]' \
+'-r+[Remote address]' \
+'--remote-addr=[Remote address]' \
+'-d+[The domain name of the remote server]' \
+'--domain=[The domain name of the remote server]' \
+'--retries=[The number of retries to connect to the remote server]' \
+'-t+[The time in seconds after that the connection would be closed if no response is received from the server]' \
+'--timeout=[The time in seconds after that the connection would be closed if no response is received from the server]' \
+'-p+[The path of the URI]' \
+'--path=[The path of the URI]' \
+'-c+[The size of the private HTTP cache
+If the size is 0 then the private HTTP cache is not used (ignores cache-control)]' \
+'--cache-size=[The size of the private HTTP cache
+If the size is 0 then the private HTTP cache is not used (ignores cache-control)]' \
+'--listen-activation[Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS]' \
+'*-v[Sets the level of verbosity]' \
+'-g[Use the GET method for the HTTP/2.0 request]' \
+'--get[Use the GET method for the HTTP/2.0 request]' \
+'--cache-fallback[Use expired cache entries if no response is received from the server]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':cafile -- The path to the pem file, which contains the trusted CA certificates:_files' \
+&& ret=0
+    
+}
+
+(( $+functions[_doh-client_commands] )) ||
+_doh-client_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'doh-client commands' commands "$@"
+}
+
+_doh-client "$@"
