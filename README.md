@@ -22,13 +22,13 @@ $ cargo build --release
 ```
 
 ### Run
-To run the binary, you need one option (see [Options](#Options)).
+To run the binary, you need one positional argument (see [Usage](#Usage)).
 ```
-$ ./doh-client --cafile /path/to/the/ca/file.pem
+$ ./doh-client /path/to/the/ca/file.pem
 ```
 For example, if you use [Arch Linux](https://www.archlinux.org/) then the following command uses the system cert store:
 ```
-# ./doh-client --cafile /etc/ca-certificates/extracted/tls-ca-bundle.pem
+# ./doh-client /etc/ca-certificates/extracted/tls-ca-bundle.pem
 ```
 
 #### Linux (`systemd`)
@@ -103,18 +103,18 @@ This example will connect to the Cloudflare DNS service.
    nameserver 127.0.0.1
    ```
 
-## Options
-`doh-client` has one required option, `--cafile` which sets the path to a pem file, which contains the trusted CA
-certificates.
+## Usage
+`doh-client` has one required positional argument, `CAFILE` which sets the path to a pem file, which contains the 
+trusted CA certificates.
 ```
 $ ./doh-client --help
-DNS over HTTPS client 1.3.2
+DNS over HTTPS client 1.3.4
 link.ted@mailbox.org
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
 
 USAGE:
-    doh-client [FLAGS] [OPTIONS] --cafile <FILE>
+    doh-client [FLAGS] [OPTIONS] <CAFILE>
 
 FLAGS:
         --cache-fallback       Use expired cache entries if no response is received from the server
@@ -125,10 +125,9 @@ FLAGS:
     -V, --version              Prints version information
 
 OPTIONS:
-        --cache-size <UNSIGNED LONG>    The size of the private HTTP cache
+    -c, --cache-size <UNSIGNED LONG>    The size of the private HTTP cache
                                         If the size is 0 then the private HTTP cache is not used (ignores cache-control)
                                         [default: 1024]
-    -c, --cafile <FILE>                 The path to the pem file, which contains the trusted CA certificates
     -d, --domain <Domain>               The domain name of the remote server [default: cloudflare-dns.com]
     -l, --listen-addr <Addr>            Listen address [default: 127.0.0.1:53]
     -p, --path <STRING>                 The path of the URI [default: dns-query]
@@ -136,6 +135,9 @@ OPTIONS:
         --retries <UNSIGNED INT>        The number of retries to connect to the remote server [default: 3]
     -t, --timeout <UNSIGNED LONG>       The time in seconds after that the connection would be closed if no response is
                                         received from the server [default: 2]
+
+ARGS:
+    <CAFILE>    The path to the pem file, which contains the trusted CA certificates
 ```
 
 ## Cache performance
