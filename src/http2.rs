@@ -36,9 +36,6 @@ use dns::DnsPacket;
 use ::Context;
 
 
-const ALPN_H2: &str = "h2";
-
-
 pub fn create_config(cafile: &str) -> Result<ClientConfig, Error> {
     let certfile = File::open(&cafile)?;
 
@@ -46,7 +43,7 @@ pub fn create_config(cafile: &str) -> Result<ClientConfig, Error> {
     if let Err(()) = config.root_store.add_pem_file(&mut BufReader::new(certfile)) {
         return Err(Error::new(ErrorKind::Other, "Cannot parse pem file"));
     }
-    config.alpn_protocols.push(ALPN_H2.to_owned());
+    config.alpn_protocols.push(vec![104, 50]); // h2
     Ok(config)
 }
 
