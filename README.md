@@ -108,7 +108,7 @@ This example will connect to the Cloudflare DNS service.
 trusted CA certificates.
 ```
 $ ./doh-client --help
-DNS over HTTPS client 1.3.4
+DNS over HTTPS client 1.3.5
 link.ted@mailbox.org
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
