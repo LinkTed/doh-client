@@ -23,7 +23,7 @@ static LOGGER: Logger = Logger {};
 
 fn main() {
     let matches = App::new("DNS over HTTPS client")
-        .version("1.3.5")
+        .version("1.3.6")
         .author("link.ted@mailbox.org")
         .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default, the client will connect to the Cloudflare DNS service.")
         .arg(Arg::with_name("listen-addr")
