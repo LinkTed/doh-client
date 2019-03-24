@@ -38,8 +38,12 @@
 profile doh-client /usr/local/bin/doh-client {
   #include <abstractions/base>
 
+  # -- BEGIN -- Network
   network inet  stream,
   network inet6 stream,
+  # --  END  -- Network
 
+  # -- BEGIN -- /etc/ca-certificates/extracted
   /etc/ca-certificates/extracted/tls-ca-bundle.pem r,
+  # --  END  -- /etc/ca-certificates/extracted
 }
