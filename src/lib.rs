@@ -11,6 +11,7 @@ extern crate futures_locks;
 extern crate h2;
 extern crate tokio_rustls;
 extern crate webpki;
+extern crate lru;
 
 
 use std::net::SocketAddr;
