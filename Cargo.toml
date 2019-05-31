@@ -1,6 +1,6 @@
 [package]
 name = "doh-client"
-version = "1.4.0"
+version = "1.4.2"
 authors = ["link.ted@mailbox.org"]
 license = "BSD-3-Clause"
 description = "DNS over HTTPS client"
@@ -24,17 +24,17 @@ categories = [
 travis-ci = { repository = "LinkTed/doh-client" }
 
 [dependencies]
-libc = "0.2.51"
+libc = "0.2.57"
 data-encoding = "2.1.2"
 log = "0.4.6"
 clap = "2.33.0"
-tokio = "0.1.18"
-tokio-rustls = "0.9.1"
-futures = "0.1.26"
+tokio = "0.1.21"
+tokio-rustls = "0.9.3"
+futures = "0.1.27"
 futures-locks = "0.3.3"
-h2 = "0.1.18"
-http = "0.1.16"
+h2 = "0.1.21"
+http = "0.1.17"
 rustls = "0.15.2"
 webpki = "0.19.1"
 bytes = "0.4.12"
-lru = "0.1.13"
+lru = "0.1.15"

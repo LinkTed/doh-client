@@ -43,6 +43,9 @@ CapabilityBoundingSet=
 # Ensures that the service process and all its children can never gain new privileges through execve()
 NoNewPrivileges=yes
 
+## System Call Filtering
+SystemCallFilter=@io-event @network-io
+SystemCallErrorNumber=EPERM
 
 [Install]
 WantedBy=multi-user.target
