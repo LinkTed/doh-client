@@ -30,18 +30,19 @@ use h2::client::SendRequest;
 
 use bytes::Bytes;
 
-pub mod logger;
+mod logger;
 
-pub mod dns;
+pub use logger::Logger;
 
-use dns::{DnsPacket, DnsCodec, UdpListenSocket};
+mod dns;
+
+use dns::{DnsPacket, DnsCodec};
+pub use dns::UdpListenSocket;
 
 mod http2;
-
 use http2::{create_config, Http2RequestFuture};
 
 mod cache;
-
 use cache::Cache;
 
 #[cfg(test)]

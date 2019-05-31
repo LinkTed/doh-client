@@ -9,13 +9,10 @@ use log::{set_max_level, set_logger, LevelFilter};
 
 use clap::{Arg, App};
 
-use doh_client::{Config, run};
-use doh_client::logger::Logger;
+use doh_client::{Config, run, UdpListenSocket, Logger};
 
 use std::net::SocketAddr;
 use std::process::exit;
-
-use doh_client::dns::UdpListenSocket::*;
 
 
 static LOGGER: Logger = Logger {};
@@ -119,18 +116,18 @@ fn main() {
     }
 
     let listen_socket = if matches.is_present("listen-activation") {
-        Activation
+        UdpListenSocket::Activation
     } else {
         if matches.is_present("listen-addr") {
             match matches.value_of("listen-addr").unwrap().parse() {
-                Ok(addr) => Addr(addr),
+                Ok(addr) => UdpListenSocket::Addr(addr),
                 Err(e) => {
                     error!("Could not parse listen address: {}", e);
                     exit(1);
                 }
             }
         } else {
-            Addr("127.0.0.1:53".parse().unwrap())
+            UdpListenSocket::Addr("127.0.0.1:53".parse().unwrap())
         }
     };
     let remote_addr: SocketAddr = match matches.value_of("remote-addr").unwrap().parse() {
