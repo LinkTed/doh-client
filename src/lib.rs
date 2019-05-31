@@ -13,6 +13,7 @@ extern crate tokio_rustls;
 extern crate webpki;
 extern crate lru;
 
+use tokio::runtime::Runtime;
 
 use std::net::SocketAddr;
 use std::process::exit;
@@ -93,6 +94,8 @@ impl Context {
 }
 
 pub fn run(config: Config) {
+    let mut runtime = Runtime::new().expect("failed to start new Runtime");
+
     // === BEGIN UDP SETUP ===
     let (dns_sink, dns_stream) = match DnsCodec::new(config.listen_socket) {
         Ok(result) => result,
@@ -113,13 +116,19 @@ pub fn run(config: Config) {
 
     let mutex_send_request: Mutex<(Option<SendRequest<Bytes>>, u32)> = Mutex::new((None, 0));
     let mutex_cache: Mutex<Cache<Bytes, Bytes>> = Mutex::new(Cache::new(context.config.cache_size));
+    let executor = runtime.executor();
     let dns_queries = dns_stream.for_each(move |(msg, addr)| {
-        tokio::spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_cache.clone(), msg, addr, context));
+        executor.spawn(Http2RequestFuture::new(mutex_send_request.clone(), mutex_cache.clone(), msg, addr, context));
 
         Ok(())
     });
 
-    tokio::run(dns_queries.map_err(|e| { error!("UDP socket err: {}", e) }).join(dns_sink).map(|(_a, _b)| {
-        error!("UDP error")
+    runtime.spawn(dns_queries.map_err(|e| {
+        error!("dns_queries: {}", e)
     }));
+    runtime.spawn(dns_sink.then(|_r| {
+        Ok(())
+    }));
+
+    runtime.shutdown_on_idle().wait().unwrap();
 }
