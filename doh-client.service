@@ -40,8 +40,8 @@ CapabilityBoundingSet=
 NoNewPrivileges=yes
 
 ## System Call Filtering
-SystemCallFilter=@io-event @network-io
-SystemCallErrorNumber=EPERM
+#SystemCallFilter=@io-event @network-io
+#SystemCallErrorNumber=EPERM
 
 [Install]
 WantedBy=multi-user.target
