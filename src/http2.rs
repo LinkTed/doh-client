@@ -7,14 +7,15 @@ use std::time::Duration;
 
 use data_encoding::BASE64URL_NOPAD;
 
-use tokio_rustls::{Connect, TlsConnector, TlsStream};
+use tokio_rustls::{Connect, TlsConnector};
+use tokio_rustls::client::TlsStream;
 
 use tokio::timer::Timeout;
 use tokio::net::TcpStream;
 use tokio::net::tcp::ConnectFuture;
 use tokio::prelude::FutureExt;
 
-use rustls::{ClientSession, ClientConfig};
+use rustls::ClientConfig;
 
 use webpki::DNSNameRef;
 
@@ -219,7 +220,7 @@ impl Future for Http2RequestFuture {
                     match http2_connection_future.poll() {
                         Ok(async_) => {
                             match async_ {
-                                Ready((mut send_request, connection)) => {
+                                Ready((send_request, connection)) => {
                                     tokio::spawn(connection.map_err(|e| {
                                         error!("GetConnection: H2 connection error: {}", e)
                                     }));
@@ -391,7 +392,7 @@ impl Future for Http2RequestFuture {
 enum Http2ConnectionState {
     GetTcpConnection(ConnectFuture),
     GetTlsConnection(Connect<TcpStream>),
-    GetHttp2Connection(Handshake<TlsStream<TcpStream, ClientSession>, Bytes>),
+    GetHttp2Connection(Handshake<TlsStream<TcpStream>, Bytes>),
 }
 
 pub struct Http2ConnectionFuture {
@@ -407,10 +408,10 @@ impl Http2ConnectionFuture {
 }
 
 impl Future for Http2ConnectionFuture {
-    type Item = (SendRequest<Bytes>, Connection<TlsStream<TcpStream, ClientSession>>);
+    type Item = (SendRequest<Bytes>, Connection<TlsStream<TcpStream>>);
     type Error = Error;
 
-    fn poll(&mut self) -> Result<Async<(SendRequest<Bytes>, Connection<TlsStream<TcpStream, ClientSession>>)>, Error> {
+    fn poll(&mut self) -> Result<Async<(SendRequest<Bytes>, Connection<TlsStream<TcpStream>>)>, Error> {
         use self::Http2ConnectionState::*;
         use self::Async::*;
         loop {
@@ -538,7 +539,7 @@ impl Future for Http2ResponseFuture {
                         match stream.poll() {
                             Ok(async_) => {
                                 match async_ {
-                                    Ready(mut body) => {
+                                    Ready(body) => {
                                         if let Some(b) = body {
                                             let buffer_len = self.buffer.len();
                                             let b_len = b.len();
