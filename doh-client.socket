@@ -1,6 +1,5 @@
 [Unit]
 Description=DNS over HTTPS client socket
-# Documentation=https://github.com/jedisct1/dnscrypt-proxy/wiki
 Before=nss-lookup.target
 Wants=nss-lookup.target network-online.target
 
