@@ -11,12 +11,6 @@
     <key>GroupName</key>
     <string>nobody</string>
 
-    <key>EnvironmentVariables</key>
-    <dict>
-      <key>PATH</key>
-      <string><![CDATA[/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin]]></string>
-    </dict>
-
     <key>RunAtLoad</key>
 	<true/>
 

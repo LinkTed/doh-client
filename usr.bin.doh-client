@@ -35,7 +35,7 @@
 
 #include <tunables/global>
 
-profile doh-client /usr/local/bin/doh-client {
+profile doh-client /usr/bin/doh-client {
   #include <abstractions/base>
 
   # -- BEGIN -- Network
