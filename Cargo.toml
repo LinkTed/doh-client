@@ -1,6 +1,6 @@
 [package]
 name = "doh-client"
-version = "1.4.3"
+version = "1.4.4"
 authors = ["link.ted@mailbox.org"]
 license = "BSD-3-Clause"
 description = "DNS over HTTPS client"
