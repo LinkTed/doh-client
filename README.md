@@ -36,9 +36,9 @@ For example, if you use [Arch Linux](https://www.archlinux.org/) then the follow
 To run the `doh-client` as a daemon and without `root` under Linux with `systemd` as init system follow the instructions.
 This example will connect to the Cloudflare DNS service.
 1. Build the binary (see [Build](#Build)).
-2. Copy the binary to `/usr/local/bin` as `root`:
+2. Copy the binary to `/usr/bin` as `root`:
    ```
-   # cp target/release/doh-client /usr/local/bin/
+   # cp target/release/doh-client /usr/bin/
    ```
 3. Copy the config files to `/etc/systemd/system/` as `root`:
    ```
@@ -67,16 +67,18 @@ This example will connect to the Cloudflare DNS service.
 ##### Additional
 If [AppArmor](https://gitlab.com/apparmor/apparmor/wikis/home/) is used then the `doh-client` profile from the 
 repository can be applied to [AppArmor](https://gitlab.com/apparmor/apparmor/wikis/home/).
-1. Copy the profile file `usr.local.bin.doh-client` to `/etc/apparmor.d/` as `root`:
+1. Copy the profile file `usr.bin.doh-client` to `/etc/apparmor.d/` as `root`:
    ```
-   # cp usr.local.bin.doh-client /etc/apparmor.d/
+   # cp usr.bin.doh-client /etc/apparmor.d/
    ```
    If the location of the CA file is different from `/etc/ca-certificates/extracted/tls-ca-bundle.pem` then change the 
-   path in `usr.local.bin.doh-client`.
+   path in `usr.bin.doh-client`.
 2. Reboot the system or reload all profiles:
    ```
    # systemctl restart apparmor.service
    ```
+##### Arch Linux
+There is an AUR package available.
 
 #### Mac OS (`launchd`)
 To run the `doh-client` as a daemon and without `root` under Mac OS with `launchd` as init system.
