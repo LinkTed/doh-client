@@ -261,6 +261,8 @@ impl Future for Http2RequestFuture {
                             match async_ {
                                 Ready(result) => {
                                     let (buffer, duration) = result;
+                                    debug!("GetResponse: request: {:?}", &self.msg.get_data());
+                                    debug!("GetResponse: response: {:?}", buffer);
                                     match DnsPacket::from_tid(buffer, self.msg.get_tid()) {
                                         Ok(dns) => {
                                             if dns.is_response() {
