@@ -546,11 +546,11 @@ impl Future for Http2ResponseFuture {
                                             let buffer_len = self.buffer.len();
                                             let b_len = b.len();
 
-                                            if buffer_len < 1024 {
-                                                if buffer_len + b_len < 1024 {
+                                            if buffer_len < 4096 {
+                                                if buffer_len + b_len < 4096 {
                                                     self.buffer.extend(b);
                                                 } else {
-                                                    self.buffer.extend(b.slice_to(1024 - buffer_len));
+                                                    self.buffer.extend(b.slice_to(4096 - buffer_len));
                                                 }
                                             }
 

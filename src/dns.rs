@@ -83,10 +83,10 @@ impl DnsPacket {
     fn parser(buffer: Bytes) -> Result<DnsPacket, DnsParserError> {
         use self::DnsParserError::{TooLittleData, TooMuchData};
         let len = buffer.len();
-
+        debug!("parse: len: {}", len);
         if len < 12 {
             return Err(TooLittleData);
-        } else if 512 < len {
+        } else if 4096 < len {
             return Err(TooMuchData);
         }
 
