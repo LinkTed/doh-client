@@ -24,17 +24,17 @@ categories = [
 travis-ci = { repository = "LinkTed/doh-client" }
 
 [dependencies]
-libc = "0.2.60"
+libc = "0.2.65"
 data-encoding = "2.1.2"
 log = "0.4.8"
 clap = "2.33.0"
 tokio = "0.1.22"
 tokio-rustls = "0.10.0"
-futures = "0.1.28"
-futures-locks = "0.3.3"
+futures = "0.1.29"
+futures-locks = "0.4.0"
 h2 = "0.1.26"
-http = "0.1.18"
+http = "0.1.19"
 rustls = "0.16.0"
 webpki = "0.21.0"
 bytes = "0.4.12"
-lru = "0.1.16"
+lru = "0.3.1"
