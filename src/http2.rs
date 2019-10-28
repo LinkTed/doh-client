@@ -30,11 +30,11 @@ use http::Request;
 
 use bytes::Bytes;
 
-use cache::Cache;
+use crate::cache::Cache;
 
-use dns::DnsPacket;
+use crate::dns::DnsPacket;
 
-use ::Context;
+use crate::Context;
 
 
 pub fn create_config(cafile: &str) -> Result<ClientConfig, Error> {
