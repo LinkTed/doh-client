@@ -25,7 +25,7 @@ use http::Request;
 
 use bytes::Bytes;
 
-use crate::dns::DnsPacket;
+use crate::dns::{MAXIMUM_DNS_PACKET_SIZE, DnsPacket};
 use crate::Context;
 
 
@@ -270,11 +270,11 @@ async fn http2_response(response_future: ResponseFuture) -> Result<(Bytes, Optio
                 let buffer_len = buffer.len();
                 let b_len = b.len();
 
-                if buffer_len < 1024 {
-                    if buffer_len + b_len < 1024 {
+                if buffer_len < MAXIMUM_DNS_PACKET_SIZE {
+                    if buffer_len + b_len < MAXIMUM_DNS_PACKET_SIZE {
                         buffer.extend(b);
                     } else {
-                        buffer.extend(b.slice_to(1024 - buffer_len));
+                        buffer.extend(b.slice_to(MAXIMUM_DNS_PACKET_SIZE - buffer_len));
                     }
                 }
 

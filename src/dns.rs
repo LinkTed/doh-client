@@ -12,6 +12,8 @@ use tokio_net::driver::Handle;
 use bytes::{Bytes, BytesMut};
 
 
+pub static MAXIMUM_DNS_PACKET_SIZE: usize = 4096;
+
 #[derive(Debug)]
 pub struct DnsCodec;
 
@@ -84,7 +86,7 @@ impl DnsPacket {
 
         if len < 12 {
             return Err(TooLittleData);
-        } else if 512 < len {
+        } else if MAXIMUM_DNS_PACKET_SIZE< len {
             return Err(TooMuchData);
         }
 
