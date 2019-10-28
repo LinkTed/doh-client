@@ -5,13 +5,14 @@ extern crate clap;
 extern crate doh_client;
 
 
-use log::{set_max_level, set_logger, LevelFilter};
-use env_logger::Builder;
-
-use doh_client::{Config, run, get_app, UdpListenSocket, Logger};
-
 use std::net::SocketAddr;
 use std::process::exit;
+
+use env_logger::Builder;
+
+use tokio::runtime::Runtime;
+
+use doh_client::{Config, run, UdpListenSocket, get_app};
 
 
 fn main() {
@@ -50,6 +51,8 @@ fn main() {
     let post: bool = !matches.is_present("get");
     let cache_size: usize = value_t!(matches, "cache-size", usize).unwrap_or(1024);
     let cache_fallback: bool = matches.is_present("cache-fallback");
-
-    run(Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout, post, cache_size, cache_fallback));
+    let config = Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout, post, cache_size, cache_fallback);
+    let runtime = Runtime::new().expect("failed to start new Runtime");
+    runtime.spawn(run(runtime.executor(), config));
+    runtime.shutdown_on_idle();
 }

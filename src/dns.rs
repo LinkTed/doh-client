@@ -1,15 +1,13 @@
 use std::io;
-use std::io::Error;
 use std::net;
 use std::net::SocketAddr;
 use std::fmt::{Display, Formatter};
 
-use futures::stream::{SplitSink, SplitStream};
-use futures::Stream;
+use futures::stream::{StreamExt, SplitSink, SplitStream};
 
-use tokio::reactor::Handle;
 use tokio::codec::{Decoder, Encoder};
 use tokio::net::{UdpSocket, UdpFramed};
+use tokio_net::driver::Handle;
 
 use bytes::{Bytes, BytesMut};
 
@@ -83,10 +81,10 @@ impl DnsPacket {
     fn parser(buffer: Bytes) -> Result<DnsPacket, DnsParserError> {
         use self::DnsParserError::{TooLittleData, TooMuchData};
         let len = buffer.len();
-        debug!("parse: len: {}", len);
+
         if len < 12 {
             return Err(TooLittleData);
-        } else if 4096 < len {
+        } else if 512 < len {
             return Err(TooMuchData);
         }
 
@@ -160,7 +158,7 @@ extern {
 }
 
 #[cfg(target_os = "macos")]
-fn get_activation_socket() -> Result<net::UdpSocket, Error> {
+fn get_activation_socket() -> io::Result<net::UdpSocket> {
     use std::ffi::CString;
     use std::os::unix::io::FromRawFd;
     use std::ptr::null_mut;
@@ -177,16 +175,16 @@ fn get_activation_socket() -> Result<net::UdpSocket, Error> {
                 free(fds as *mut c_void);
                 Ok(socket)
             } else {
-                Err(Error::new(Other, "Could not get fd: cnt != 1"))
+                Err(io::Error::new(Other, "Could not get fd: cnt != 1"))
             }
         } else {
-            Err(Error::new(Other, "Could not get fd: launch_activate_socket != 0"))
+            Err(io::Error::new(Other, "Could not get fd: launch_activate_socket != 0"))
         }
     }
 }
 
 #[cfg(all(target_family = "unix", not(target_os = "macos")))]
-fn get_activation_socket() -> Result<net::UdpSocket, Error> {
+fn get_activation_socket() -> io::Result<net::UdpSocket> {
     use std::os::unix::io::FromRawFd;
     unsafe {
         Ok(net::UdpSocket::from_raw_fd(3))
@@ -194,29 +192,18 @@ fn get_activation_socket() -> Result<net::UdpSocket, Error> {
 }
 
 #[cfg(target_family = "windows")]
-fn get_activation_socket() -> Result<net::UdpSocket, Error> {
+fn get_activation_socket() -> io::Result<net::UdpSocket> {
     use std::io::ErrorKind::Other;
-    Err(Error::new(Other, "This is not supported in windows platforms"))
+    Err(io::Error::new(Other, "This is not supported in windows platforms"))
 }
 
 impl DnsCodec {
-    pub fn new(listen: UdpListenSocket) -> Result<(SplitSink<UdpFramed<DnsCodec>>, SplitStream<UdpFramed<DnsCodec>>), Error> {
-        use self::UdpListenSocket::*;
+    pub async fn new(listen: UdpListenSocket) -> io::Result<(SplitSink<UdpFramed<DnsCodec>, (DnsPacket, SocketAddr)>, SplitStream<UdpFramed<DnsCodec>>)> {
         let socket = match listen {
-            Addr(socket_addr) => match UdpSocket::bind(&socket_addr) {
-                Ok(socket) => socket,
-                Err(e) => return Err(e)
-            },
-            Activation => {
-                match get_activation_socket() {
-                    Ok(socket) => {
-                        match UdpSocket::from_std(socket, &Handle::default()) {
-                            Ok(socket) => socket,
-                            Err(e) => return Err(e)
-                        }
-                    }
-                    Err(e) => return Err(e)
-                }
+            UdpListenSocket::Addr(socket_addr) => UdpSocket::bind(&socket_addr).await?,
+            UdpListenSocket::Activation => {
+                let socket = get_activation_socket()?;
+                UdpSocket::from_std(socket, &Handle::default())?
             }
         };
         Ok(UdpFramed::new(socket, DnsCodec).split())
