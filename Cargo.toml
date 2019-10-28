@@ -39,3 +39,7 @@ rustls = "0.16.0"
 webpki = "0.21.0"
 bytes = "0.4.12"
 lru = "0.3.1"
+
+[[bin]]
+name = "completions"
+path = "src/main_completions.rs"
