@@ -31,7 +31,6 @@ If the size is 0 then the private HTTP cache is not used (ignores cache-control)
             cand --cache-size 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
             cand --listen-activation 'Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS'
-            cand -v 'Sets the level of verbosity'
             cand -g 'Use the GET method for the HTTP/2.0 request'
             cand --get 'Use the GET method for the HTTP/2.0 request'
             cand --cache-fallback 'Use expired cache entries if no response is received from the server'

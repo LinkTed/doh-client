@@ -20,7 +20,7 @@ _doh-client() {
 
     case "${cmd}" in
         doh-client)
-            opts=" -v -g -h -V -l -r -d -t -p -c  --listen-activation --get --cache-fallback --help --version --listen-addr --remote-addr --domain --retries --timeout --path --cache-size  <CAFILE> "
+            opts=" -g -h -V -l -r -d -t -p -c  --listen-activation --get --cache-fallback --help --version --listen-addr --remote-addr --domain --retries --timeout --path --cache-size  <CAFILE> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

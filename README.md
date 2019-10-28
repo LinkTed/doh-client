@@ -115,6 +115,7 @@ DNS over HTTPS client 1.4.5
 link.ted@mailbox.org
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
+This binary uses the env\_logger as logger implementations. See https://github.com/sebasmagri/env\_logger/
 
 USAGE:
     doh-client [FLAGS] [OPTIONS] <CAFILE>
@@ -124,7 +125,6 @@ FLAGS:
     -g, --get                  Use the GET method for the HTTP/2.0 request
     -h, --help                 Prints help information
         --listen-activation    Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS
-    -v                         Sets the level of verbosity
     -V, --version              Prints version information
 
 OPTIONS:

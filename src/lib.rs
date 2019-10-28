@@ -33,9 +33,6 @@ use bytes::Bytes;
 use clap::{App, Arg};
 
 
-mod logger;
-pub use logger::Logger;
-
 mod dns;
 use dns::{DnsPacket, DnsCodec};
 pub use dns::UdpListenSocket;
@@ -51,7 +48,9 @@ pub fn get_app() -> App<'static, 'static> {
     App::new("DNS over HTTPS client")
         .version("1.4.5")
         .author("link.ted@mailbox.org")
-        .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\nBy default, the client will connect to the Cloudflare DNS service.")
+        .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
+        By default, the client will connect to the Cloudflare DNS service.\n\
+        This binary uses the env_logger as logger implementations. See https://github.com/sebasmagri/env_logger/")
         .arg(Arg::with_name("listen-addr")
             .short("l")
             .long("listen-addr")
@@ -108,10 +107,6 @@ pub fn get_app() -> App<'static, 'static> {
             .help("The path of the URI")
             .default_value("dns-query")
             .required(false))
-        .arg(Arg::with_name("v")
-            .short("v")
-            .multiple(true)
-            .help("Sets the level of verbosity"))
         .arg(Arg::with_name("get")
             .short("g")
             .long("get")

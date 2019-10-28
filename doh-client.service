@@ -5,8 +5,8 @@ Before=nss-lookup.target
 Requires=doh-client.socket
 
 [Service]
-ExecStart=/usr/bin/doh-client -vv --listen-activation /etc/ca-certificates/extracted/tls-ca-bundle.pem
-
+ExecStart=/usr/bin/doh-client --listen-activation /etc/ca-certificates/extracted/tls-ca-bundle.pem
+Environment=RUST_LOG="info"
 
 ## Scheduling
 Nice=-20

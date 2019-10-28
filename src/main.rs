@@ -6,33 +6,19 @@ extern crate doh_client;
 
 
 use log::{set_max_level, set_logger, LevelFilter};
+use env_logger::Builder;
 
-use doh_client::{Config, run, UdpListenSocket, Logger};
+use doh_client::{Config, run, get_app, UdpListenSocket, Logger};
 
 use std::net::SocketAddr;
 use std::process::exit;
-
-use doh_client::get_app;
-
-
-static LOGGER: Logger = Logger {};
 
 
 fn main() {
     let matches = get_app().get_matches();
 
-    if let Err(e) = set_logger(&LOGGER) {
-        eprintln!("Could not set logger: {}", e);
-        exit(1);
-    }
-
-    match matches.occurrences_of("v") {
-        0 => set_max_level(LevelFilter::Error),
-        1 => set_max_level(LevelFilter::Warn),
-        2 => set_max_level(LevelFilter::Info),
-        3 => set_max_level(LevelFilter::Debug),
-        4 | _ => set_max_level(LevelFilter::Trace),
-    }
+    let mut builder = Builder::from_default_env();
+    builder.format_timestamp(None).init();
 
     let listen_socket = if matches.is_present("listen-activation") {
         UdpListenSocket::Activation
