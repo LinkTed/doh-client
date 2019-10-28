@@ -43,10 +43,7 @@ mod http2;
 use http2::{create_config, Http2RequestFuture};
 
 mod cache;
-use cache::Cache;
-
-#[cfg(test)]
-mod tests;
+pub use cache::Cache;
 
 
 pub struct Config {
