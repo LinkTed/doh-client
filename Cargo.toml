@@ -2,7 +2,7 @@
 name = "doh-client"
 version = "1.4.5"
 edition = "2018"
-authors = ["link.ted@mailbox.org"]
+authors = ["LinkTed <link.ted@mailbox.org>"] 
 license = "BSD-3-Clause"
 description = "DNS over HTTPS client"
 readme = "README.md"
