@@ -132,7 +132,10 @@ pub struct Config {
 
 impl Config {
     /// Create a new `doh_client::Config` object.
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool, cache_size: usize, cache_fallback: bool) -> Config {
+    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr,
+               domain: &str, cafile: &str, path: &str, retries: u32,
+               timeout: u64, post: bool, cache_size: usize,
+               cache_fallback: bool) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) => client_config,
             Err(e) => {
@@ -148,7 +151,18 @@ impl Config {
             exit(1);
         }
 
-        Config { listen_socket, remote_addr, domain: domain.to_string(), client_config: Arc::new(client_config), uri, retries, timeout, post, cache_size, cache_fallback }
+        Config {
+            listen_socket,
+            remote_addr,
+            domain: domain.to_string(),
+            client_config: Arc::new(client_config),
+            uri,
+            retries,
+            timeout,
+            post,
+            cache_size,
+            cache_fallback
+        }
     }
 }
 
@@ -162,7 +176,7 @@ pub struct Context {
 
 impl Context {
     /// Create a new `doh_client::Context` object.
-    pub fn new(config: Config, sender: UnboundedSender<(DnsPacket, SocketAddr)>) -> Context {
+    fn new(config: Config, sender: UnboundedSender<(DnsPacket, SocketAddr)>) -> Context {
         let cache_size = config.cache_size;
         Context {
             config,
