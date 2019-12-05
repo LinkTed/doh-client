@@ -33,6 +33,7 @@ mod cache;
 pub use cache::Cache;
 
 
+/// Get the `clap::App` object for the argument parsing.
 pub fn get_app() -> App<'static, 'static> {
     App::new("DNS over HTTPS client")
         .version("1.4.5")
@@ -115,6 +116,7 @@ pub fn get_app() -> App<'static, 'static> {
             .required(false))
 }
 
+/// The configuration object for the `doh-client`.
 pub struct Config {
     listen_socket: UdpListenSocket,
     remote_addr: SocketAddr,
@@ -129,6 +131,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Create a new `doh_client::Config` object.
     pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr, domain: &str, cafile: &str, path: &str, retries: u32, timeout: u64, post: bool, cache_size: usize, cache_fallback: bool) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) => client_config,
@@ -149,6 +152,7 @@ impl Config {
     }
 }
 
+/// The context object for a running instance.
 pub struct Context {
     config: Config,
     sender: UnboundedSender<(DnsPacket, SocketAddr)>,
@@ -157,6 +161,7 @@ pub struct Context {
 }
 
 impl Context {
+    /// Create a new `doh_client::Context` object.
     pub fn new(config: Config, sender: UnboundedSender<(DnsPacket, SocketAddr)>) -> Context {
         let cache_size = config.cache_size;
         Context {
@@ -168,6 +173,7 @@ impl Context {
     }
 }
 
+/// Run the `doh-client` with a specific configuration.
 pub async fn run(config: Config) {
     // === BEGIN UDP SETUP ===
     let (mut dns_sink, mut dns_stream) = match DnsCodec::new(config.listen_socket).await {
