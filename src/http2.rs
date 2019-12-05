@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::net::SocketAddr;
+use std::net::{SocketAddr};
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
@@ -8,8 +8,8 @@ use std::time::Duration;
 
 use data_encoding::BASE64URL_NOPAD;
 
-use tokio::timer::delay;
-use tokio::timer::Timeout;
+use tokio::spawn;
+use tokio::time::{delay_for, timeout};
 use tokio::net::TcpStream;
 
 use rustls::ClientConfig;
@@ -23,7 +23,7 @@ use h2::client::{SendRequest, ResponseFuture, Connection, handshake};
 
 use http::Request;
 
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 
 use crate::dns::{MAXIMUM_DNS_PACKET_SIZE, DnsPacket};
 use crate::Context;
@@ -82,7 +82,7 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
                         info!("connection was successfully established to remote server {} ({})", config.remote_addr, config.domain);
 
                         mutex_guard_send_request.replace(send_request);
-                        context.task_executor.spawn(async move {
+                        spawn(async move {
                             if let Err(e) = connection.await {
                                 error!("connection close: {}", e);
                             }
@@ -91,7 +91,7 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
                     }
                     Err(e) => {
                         error!("connection to remote server {} ({}) failed: {}", config.remote_addr, config.domain, e);
-                        delay(tokio::clock::now() + Duration::from_secs(1)).await;
+                        delay_for(Duration::from_secs(1)).await;
                     }
                 }
             }
@@ -143,7 +143,7 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
             };
 
             if let Some(http2_response_future) = http2_response_future {
-                match Timeout::new(http2_response_future, Duration::from_secs(config.timeout)).await {
+                match timeout(Duration::from_secs(config.timeout), http2_response_future).await {
                     Ok(Ok((buffer, duration))) => {
                         match DnsPacket::from_tid(buffer.clone(), msg.get_tid()) {
                             Ok(dns) => {
@@ -263,7 +263,7 @@ async fn http2_response(response_future: ResponseFuture) -> Result<(Bytes, Optio
         }
     }
 
-    let mut buffer = Bytes::new();
+    let mut buffer = BytesMut::new();
     while let Some(result) = body.data().await {
         match result {
             Ok(b) => {
@@ -274,11 +274,11 @@ async fn http2_response(response_future: ResponseFuture) -> Result<(Bytes, Optio
                     if buffer_len + b_len < MAXIMUM_DNS_PACKET_SIZE {
                         buffer.extend(b);
                     } else {
-                        buffer.extend(b.slice_to(MAXIMUM_DNS_PACKET_SIZE - buffer_len));
+                        buffer.extend(b.slice(0..MAXIMUM_DNS_PACKET_SIZE - buffer_len));
                     }
                 }
 
-                if let Err(e) = body.release_capacity().release_capacity(b_len) {
+                if let Err(e) =  body.flow_control().release_capacity(b_len) {
                     error!("release_capacity: {}", e);
                     return Err(())
                 }
@@ -290,5 +290,5 @@ async fn http2_response(response_future: ResponseFuture) -> Result<(Bytes, Optio
         }
     }
 
-    Ok((buffer, duration))
+    Ok((buffer.freeze(), duration))
 }

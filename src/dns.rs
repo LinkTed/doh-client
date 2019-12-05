@@ -5,11 +5,12 @@ use std::fmt::{Display, Formatter};
 
 use futures::stream::{StreamExt, SplitSink, SplitStream};
 
-use tokio::codec::{Decoder, Encoder};
-use tokio::net::{UdpSocket, UdpFramed};
-use tokio_net::driver::Handle;
+use tokio::net::UdpSocket;
 
-use bytes::{Bytes, BytesMut};
+use tokio_util::codec::{Decoder, Encoder};
+use tokio_util::udp::UdpFramed;
+
+use bytes::{Bytes, BytesMut, Buf};
 
 
 pub static MAXIMUM_DNS_PACKET_SIZE: usize = 4096;
@@ -73,7 +74,7 @@ impl DnsPacket {
     }
 
     pub fn from_tid(buffer: Bytes, tid: [u8; 2]) -> Result<DnsPacket, DnsParserError> {
-        let mut buffer = BytesMut::from(buffer);
+        let mut buffer = BytesMut::from(buffer.bytes());
         buffer[0] = tid[0];
         buffer[1] = tid[1];
 
@@ -86,7 +87,7 @@ impl DnsPacket {
 
         if len < 12 {
             return Err(TooLittleData);
-        } else if MAXIMUM_DNS_PACKET_SIZE< len {
+        } else if MAXIMUM_DNS_PACKET_SIZE < len {
             return Err(TooMuchData);
         }
 
@@ -205,7 +206,7 @@ impl DnsCodec {
             UdpListenSocket::Addr(socket_addr) => UdpSocket::bind(&socket_addr).await?,
             UdpListenSocket::Activation => {
                 let socket = get_activation_socket()?;
-                UdpSocket::from_std(socket, &Handle::default())?
+                UdpSocket::from_std(socket)?
             }
         };
         Ok(UdpFramed::new(socket, DnsCodec).split())

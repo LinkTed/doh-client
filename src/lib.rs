@@ -23,7 +23,7 @@ use futures::lock::Mutex;
 use futures::SinkExt;
 use futures::stream::StreamExt;
 
-use tokio::runtime::TaskExecutor;
+use tokio::spawn;
 
 use h2::client::SendRequest;
 
@@ -162,25 +162,23 @@ impl Config {
 pub struct Context {
     config: Config,
     sender: UnboundedSender<(DnsPacket, SocketAddr)>,
-    task_executor: TaskExecutor,
     mutex_send_request: Mutex<Option<SendRequest<Bytes>>>,
     mutex_cache: Mutex<Cache<Bytes, Bytes>>
 }
 
 impl Context {
-    pub fn new(config: Config, sender: UnboundedSender<(DnsPacket, SocketAddr)>, task_executor: TaskExecutor) -> Context {
+    pub fn new(config: Config, sender: UnboundedSender<(DnsPacket, SocketAddr)>) -> Context {
         let cache_size = config.cache_size;
         Context {
             config,
             sender,
-            task_executor,
             mutex_send_request: Mutex::new(None),
             mutex_cache: Mutex::new(Cache::new(cache_size))
         }
     }
 }
 
-pub async fn run(task_executor: TaskExecutor, config: Config) {
+pub async fn run(config: Config) {
     // === BEGIN UDP SETUP ===
     let (mut dns_sink, mut dns_stream) = match DnsCodec::new(config.listen_socket).await {
         Ok(result) => result,
@@ -189,16 +187,16 @@ pub async fn run(task_executor: TaskExecutor, config: Config) {
             exit(1);
         }
     };
-    let (sender, mut receiver) = unbounded::<(DnsPacket, SocketAddr)>();
+    let (sender, receiver) = unbounded::<(DnsPacket, SocketAddr)>();
     // === END UDP SETUP ===
 
-    let context: &'static Context = Box::leak(Box::new(Context::new(config, sender, task_executor)));
+    let context: &'static Context = Box::leak(Box::new(Context::new(config, sender)));
 
-    context.task_executor.spawn(async move {
+    spawn(async move {
        while let Some(result) = dns_stream.next().await {
            match result {
                Ok((msg, addr)) => {
-                   context.task_executor.spawn(http2_request(msg, addr, context));
+                   spawn(http2_request(msg, addr, context));
                }
                Err(e) => {
                    error!("next: {}", e);
@@ -208,7 +206,7 @@ pub async fn run(task_executor: TaskExecutor, config: Config) {
        }
     });
 
-    if let Err(e) = dns_sink.send_all(&mut receiver).await {
+    if let Err(e) = dns_sink.send_all(&mut receiver.map(Ok)).await {
         error!("send_all: {}", e);
         exit(1);
     }

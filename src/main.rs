@@ -10,12 +10,11 @@ use std::process::exit;
 
 use env_logger::Builder;
 
-use tokio::runtime::Runtime;
-
 use doh_client::{Config, run, UdpListenSocket, get_app};
 
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let matches = get_app().get_matches();
 
     let mut builder = Builder::from_default_env();
@@ -52,7 +51,5 @@ fn main() {
     let cache_size: usize = value_t!(matches, "cache-size", usize).unwrap_or(1024);
     let cache_fallback: bool = matches.is_present("cache-fallback");
     let config = Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout, post, cache_size, cache_fallback);
-    let runtime = Runtime::new().expect("failed to start new Runtime");
-    runtime.spawn(run(runtime.executor(), config));
-    runtime.shutdown_on_idle();
+    run(config).await
 }

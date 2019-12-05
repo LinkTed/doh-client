@@ -25,21 +25,27 @@ categories = [
 travis-ci = { repository = "LinkTed/doh-client" }
 
 [dependencies]
-libc = "0.2.65"
+libc = "0.2.66"
 data-encoding = "2.1.2"
 log = "0.4.8"
 env_logger = "0.7.1"
 clap = "2.33.0"
-tokio = "0.2.0-alpha.6"
-tokio-net = "0.2.0-alpha.6"
-tokio-rustls = "0.12.0-alpha.5"
-futures-preview = "0.3.0-alpha.19"
-h2 = "0.2.0-alpha.3"
-http = "0.1.19"
+tokio-rustls = "0.12.0"
+futures = "0.3.1"
+h2 = "0.2.0"
+http = "0.2.0" 
 rustls = "0.16.0"
 webpki = "0.21.0"
-bytes = "0.4.12"
-lru = "0.4.0"
+bytes = "0.5.2"
+lru = "0.4.1"
+
+[dependencies.tokio]
+version = "0.2.2"
+features = ["rt-core", "net", "time", "macros"]
+
+[dependencies.tokio-util]
+version = "0.2.0"
+features = ["codec", "udp"]
 
 [[bin]]
 name = "completions"
