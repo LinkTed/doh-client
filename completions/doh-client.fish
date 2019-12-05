@@ -7,7 +7,6 @@ complete -c doh-client -n "__fish_use_subcommand" -s p -l path -d 'The path of t
 complete -c doh-client -n "__fish_use_subcommand" -s c -l cache-size -d 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
 complete -c doh-client -n "__fish_use_subcommand" -l listen-activation -d 'Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS'
-complete -c doh-client -n "__fish_use_subcommand" -s v -d 'Sets the level of verbosity'
 complete -c doh-client -n "__fish_use_subcommand" -s g -l get -d 'Use the GET method for the HTTP/2.0 request'
 complete -c doh-client -n "__fish_use_subcommand" -l cache-fallback -d 'Use expired cache entries if no response is received from the server'
 complete -c doh-client -n "__fish_use_subcommand" -s h -l help -d 'Prints help information'
