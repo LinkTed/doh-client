@@ -1,15 +1,5 @@
-extern crate data_encoding;
 #[macro_use]
 extern crate log;
-extern crate tokio;
-extern crate http;
-extern crate bytes;
-extern crate rustls;
-extern crate futures;
-extern crate h2;
-extern crate tokio_rustls;
-extern crate webpki;
-extern crate lru;
 
 
 use std::sync::Arc;

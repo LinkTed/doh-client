@@ -2,7 +2,6 @@
 extern crate log;
 #[macro_use]
 extern crate clap;
-extern crate doh_client;
 
 
 use std::net::SocketAddr;
