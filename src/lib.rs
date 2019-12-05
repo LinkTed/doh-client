@@ -36,7 +36,7 @@ pub use cache::Cache;
 /// Get the `clap::App` object for the argument parsing.
 pub fn get_app() -> App<'static, 'static> {
     App::new("DNS over HTTPS client")
-        .version("1.4.5")
+        .version("2.0.0")
         .author("link.ted@mailbox.org")
         .about("Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
         By default, the client will connect to the Cloudflare DNS service.\n\
