@@ -50,3 +50,7 @@ features = ["codec", "udp"]
 [[bin]]
 name = "completions"
 path = "src/main_completions.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
