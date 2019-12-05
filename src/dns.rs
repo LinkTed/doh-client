@@ -132,22 +132,6 @@ impl DnsPacket {
     pub fn get_questions(&self) -> u16 {
         self.questions
     }
-
-    pub fn get_answer(&self) -> u16 {
-        self.answer
-    }
-
-    pub fn get_authority(&self) -> u16 {
-        self.authority
-    }
-
-    pub fn get_additional_records(&self) -> u16 {
-        self.additional_records
-    }
-
-    pub fn get_data(&self) -> &Bytes {
-        &self.data
-    }
 }
 
 #[cfg(target_os = "macos")]
