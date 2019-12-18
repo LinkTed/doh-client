@@ -36,7 +36,7 @@ h2 = "0.2.0"
 http = "0.2.0" 
 rustls = "0.16.0"
 webpki = "0.21.0"
-bytes = "0.5.2"
+bytes = "0.5.3"
 lru = "0.4.3"
 
 [dependencies.tokio]
