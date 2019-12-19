@@ -40,7 +40,7 @@ bytes = "0.5.3"
 lru = "0.4.3"
 
 [dependencies.tokio]
-version = "0.2.4"
+version = "0.2.5"
 features = ["rt-core", "net", "time", "macros"]
 
 [dependencies.tokio-util]
