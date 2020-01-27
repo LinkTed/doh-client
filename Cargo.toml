@@ -41,7 +41,7 @@ lru = "0.4.3"
 
 [dependencies.tokio]
 version = "0.2.10"
-features = ["rt-core", "net", "time", "macros"]
+features = ["rt-threaded", "net", "time", "macros"]
 
 [dependencies.tokio-util]
 version = "0.2.0"
