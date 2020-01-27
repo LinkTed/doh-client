@@ -40,8 +40,13 @@ CapabilityBoundingSet=
 NoNewPrivileges=yes
 
 ## System Call Filtering
-#SystemCallFilter=@io-event @network-io
-#SystemCallErrorNumber=EPERM
+SystemCallFilter=prctl close mprotect getrandom epoll_create1 lseek prlimit64 \
+                 setsockopt pipe2 futex set_tid_address fstat rt_sigprocmask \
+                 openat fcntl sendto getsockopt brk access epoll_ctl munmap \
+                 set_robust_list mmap ioctl socket arch_prctl read sigaltstack \
+                 sched_getaffinity clone epoll_wait write connect execve \
+                 rt_sigaction recvfrom sched_yield
+SystemCallErrorNumber=EPERM
 
 [Install]
 WantedBy=multi-user.target
