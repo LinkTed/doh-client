@@ -40,12 +40,12 @@ CapabilityBoundingSet=
 NoNewPrivileges=yes
 
 ## System Call Filtering
-SystemCallFilter=prctl close mprotect getrandom epoll_create1 lseek prlimit64 \
-                 setsockopt pipe2 futex set_tid_address fstat rt_sigprocmask \
-                 openat fcntl sendto getsockopt brk access epoll_ctl munmap \
-                 set_robust_list mmap ioctl socket arch_prctl read sigaltstack \
-                 sched_getaffinity clone epoll_wait write connect execve \
-                 rt_sigaction recvfrom sched_yield
+SystemCallFilter=ioctl munmap getsockopt epoll_wait recvfrom fcntl clone futex \
+                 mmap setsockopt rt_sigaction getrandom pipe2 prlimit64 socket \
+                 write epoll_ctl read set_robust_list sigaltstack sched_yield \
+                 pread64 brk epoll_create1 arch_prctl set_tid_address openat \
+                 fstat bind sendto access mprotect rt_sigprocmask prctl \
+                 sched_getaffinity execve close connect
 SystemCallErrorNumber=EPERM
 
 [Install]
