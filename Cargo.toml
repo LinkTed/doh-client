@@ -25,22 +25,22 @@ categories = [
 travis-ci = { repository = "LinkTed/doh-client" }
 
 [dependencies]
-libc = "0.2.66"
+libc = "0.2.67"
 data-encoding = "2.1.2"
 log = "0.4.8"
 env_logger = "0.7.1"
 clap = "2.33.0"
 tokio-rustls = "0.12.2"
-futures = "0.3.1"
+futures = "0.3.4"
 h2 = "0.2.1"
 http = "0.2.0" 
 rustls = "0.16.0"
-webpki = "0.21.0"
+webpki = "0.21.2"
 bytes = "0.5.4"
 lru = "0.4.3"
 
 [dependencies.tokio]
-version = "0.2.11"
+version = "0.2.13"
 features = ["rt-threaded", "net", "time", "macros"]
 
 [dependencies.tokio-util]
