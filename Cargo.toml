@@ -13,7 +13,8 @@ exclude = [
     "com.doh-client.daemon.plist",
     "doh-client.service",
     "doh-client.socket",
-    "usr.bin.doh-client"
+    "usr.bin.doh-client",
+    "PKGBUILD"
     ]
 repository = "https://github.com/LinkTed/doh-client"
 categories = [
