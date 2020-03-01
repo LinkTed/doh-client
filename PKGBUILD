@@ -16,7 +16,7 @@ md5sums=("SKIP")
 build() {
   cd $pkgname
 
-  cargo build --release
+  cargo build --release --bin doh-client
   strip "target/release/doh-client"
 }
 
