@@ -213,8 +213,7 @@ impl Decoder for DnsCodec {
     }
 }
 
-impl Encoder for DnsCodec {
-    type Item = DnsPacket;
+impl Encoder<DnsPacket> for DnsCodec {
     type Error = io::Error;
 
     fn encode(&mut self, data: DnsPacket, buf: &mut BytesMut) -> Result<(), io::Error> {
