@@ -2,9 +2,12 @@ language: rust
 rust:
   - stable
   - beta
+before_script:
+  - rustup component add rustfmt
 script:
   - cargo build --verbose --all
   - cargo test --verbose --all
+  - cargo fmt -- --check
 os:
   - linux
   - osx
