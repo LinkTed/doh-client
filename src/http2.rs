@@ -1,40 +1,45 @@
-use std::sync::Arc;
-use std::net::{SocketAddr};
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
+use std::net::SocketAddr;
 use std::ops::DerefMut;
+use std::sync::Arc;
 use std::time::Duration;
 
 use data_encoding::BASE64URL_NOPAD;
 
+use tokio::net::TcpStream;
 use tokio::spawn;
 use tokio::time::{delay_for, timeout};
-use tokio::net::TcpStream;
 
 use rustls::ClientConfig;
 
 use webpki::DNSNameRef;
 
-use tokio_rustls::TlsConnector;
 use tokio_rustls::client::TlsStream;
+use tokio_rustls::TlsConnector;
 
-use h2::client::{SendRequest, ResponseFuture, Connection, handshake};
+use h2::client::{handshake, Connection, ResponseFuture, SendRequest};
 
 use http::Request;
 
 use bytes::{Bytes, BytesMut};
 
-use crate::dns::{MAXIMUM_DNS_PACKET_SIZE, DnsPacket};
+use crate::dns::{DnsPacket, MAXIMUM_DNS_PACKET_SIZE};
 use crate::Context;
-
 
 pub fn create_config(cafile: &str) -> io::Result<ClientConfig> {
     let certfile = File::open(&cafile)?;
 
     let mut config = ClientConfig::new();
-    if let Err(()) = config.root_store.add_pem_file(&mut BufReader::new(certfile)) {
-        return Err(io::Error::new(io::ErrorKind::Other, "Cannot parse pem file"));
+    if let Err(()) = config
+        .root_store
+        .add_pem_file(&mut BufReader::new(certfile))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Cannot parse pem file",
+        ));
     }
     config.alpn_protocols.push(vec![104, 50]); // h2
     Ok(config)
@@ -77,9 +82,18 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
         if mutex_guard_send_request.is_none() {
             for tries in 0..config.retries {
                 info!("try to connect: {}", tries + 1);
-                match http2_connection(config.remote_addr, config.client_config.clone(), &config.domain).await {
+                match http2_connection(
+                    config.remote_addr,
+                    config.client_config.clone(),
+                    &config.domain,
+                )
+                .await
+                {
                     Ok((send_request, connection)) => {
-                        info!("connection was successfully established to remote server {} ({})", config.remote_addr, config.domain);
+                        info!(
+                            "connection was successfully established to remote server {} ({})",
+                            config.remote_addr, config.domain
+                        );
 
                         mutex_guard_send_request.replace(send_request);
                         spawn(async move {
@@ -90,7 +104,10 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
                         break;
                     }
                     Err(e) => {
-                        error!("connection to remote server {} ({}) failed: {}", config.remote_addr, config.domain, e);
+                        error!(
+                            "connection to remote server {} ({}) failed: {}",
+                            config.remote_addr, config.domain, e
+                        );
                         delay_for(Duration::from_secs(1)).await;
                     }
                 }
@@ -112,7 +129,11 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
             } else {
                 Request::builder()
                     .method("GET")
-                    .uri(format!("{}?dns={}", config.uri, BASE64URL_NOPAD.encode(&msg.get_without_tid())))
+                    .uri(format!(
+                        "{}?dns={}",
+                        config.uri,
+                        BASE64URL_NOPAD.encode(&msg.get_without_tid())
+                    ))
                     .header("accept", "application/dns-message")
                     .body(())
                     .unwrap()
@@ -122,9 +143,7 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
                 Ok((response, mut request)) => {
                     if post {
                         match request.send_data(msg.get_without_tid(), true) {
-                            Ok(()) => {
-                                Some(http2_response(response))
-                            }
+                            Ok(()) => Some(http2_response(response)),
                             Err(e) => {
                                 error!("send_data: {}", e);
                                 mutex_guard_send_request.take();
@@ -134,7 +153,7 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
                     } else {
                         Some(http2_response(response))
                     }
-                },
+                }
                 Err(e) => {
                     error!("send_request: {}", e);
                     mutex_guard_send_request.take();
@@ -152,7 +171,11 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
                                     if config.cache_size != 0 {
                                         if let Some(duration) = duration {
                                             let mut mutex_guard_cache = mutex_cache.lock().await;
-                                            mutex_guard_cache.put(msg.get_without_tid(), buffer.clone(), duration.clone());
+                                            mutex_guard_cache.put(
+                                                msg.get_without_tid(),
+                                                buffer.clone(),
+                                                duration.clone(),
+                                            );
                                         }
                                     }
                                 } else {
@@ -206,18 +229,22 @@ pub async fn http2_request(msg: DnsPacket, addr: SocketAddr, context: &'static C
     }
 }
 
-async fn http2_connection(remote_addr: SocketAddr, config: Arc<ClientConfig>, domain: &str) -> io::Result<(SendRequest<Bytes>, Connection<TlsStream<TcpStream>>)> {
+async fn http2_connection(
+    remote_addr: SocketAddr,
+    config: Arc<ClientConfig>,
+    domain: &str,
+) -> io::Result<(SendRequest<Bytes>, Connection<TlsStream<TcpStream>>)> {
     let connection = TcpStream::connect(&remote_addr).await?;
     connection.set_keepalive(Some(Duration::from_secs(1)))?;
     connection.set_nodelay(true)?;
 
     let tls_connector = TlsConnector::from(config);
-    let tls_connection = tls_connector.connect(DNSNameRef::try_from_ascii_str(domain).unwrap(), connection).await?;
+    let tls_connection = tls_connector
+        .connect(DNSNameRef::try_from_ascii_str(domain).unwrap(), connection)
+        .await?;
     match handshake(tls_connection).await {
         Ok(result) => Ok(result),
-        Err(e) => {
-            Err(io::Error::new(io::ErrorKind::Other, e))
-        }
+        Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
     }
 }
 
@@ -278,14 +305,14 @@ async fn http2_response(response_future: ResponseFuture) -> Result<(Bytes, Optio
                     }
                 }
 
-                if let Err(e) =  body.flow_control().release_capacity(b_len) {
+                if let Err(e) = body.flow_control().release_capacity(b_len) {
                     error!("release_capacity: {}", e);
-                    return Err(())
+                    return Err(());
                 }
             }
             Err(e) => {
                 error!("data: {}", e);
-                return Err(())
+                return Err(());
             }
         }
     }

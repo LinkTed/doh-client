@@ -1,17 +1,16 @@
+use std::fmt::{Display, Formatter};
 use std::io;
 use std::net;
 use std::net::SocketAddr;
-use std::fmt::{Display, Formatter};
 
-use futures::stream::{StreamExt, SplitSink, SplitStream};
+use futures::stream::{SplitSink, SplitStream, StreamExt};
 
 use tokio::net::UdpSocket;
 
 use tokio_util::codec::{Decoder, Encoder};
 use tokio_util::udp::UdpFramed;
 
-use bytes::{Bytes, BytesMut, Buf};
-
+use bytes::{Buf, Bytes, BytesMut};
 
 pub static MAXIMUM_DNS_PACKET_SIZE: usize = 4096;
 
@@ -45,9 +44,9 @@ impl Display for UdpListenSocket {
         match self {
             Addr(socket_addr) => write!(f, "{}", socket_addr),
             Activation => {
-                if cfg!(target_os="macos") {
+                if cfg!(target_os = "macos") {
                     write!(f, "file descriptor of launch_activate_socket()")
-                } else if cfg!(target_family="unix") {
+                } else if cfg!(target_family = "unix") {
                     write!(f, "file descriptor 3")
                 } else {
                     write!(f, "this is not supported")
@@ -101,7 +100,15 @@ impl DnsPacket {
         let authority: u16 = ((buffer[8] as u16) << 8) | (buffer[9] as u16);
         let additional_records: u16 = ((buffer[10] as u16) << 8) | (buffer[11] as u16);
 
-        Ok(DnsPacket { data: buffer, tid, response, questions, answer, authority, additional_records })
+        Ok(DnsPacket {
+            data: buffer,
+            tid,
+            response,
+            questions,
+            answer,
+            authority,
+            additional_records,
+        })
     }
 
     pub fn len(&self) -> usize {
@@ -135,22 +142,23 @@ impl DnsPacket {
 }
 
 #[cfg(target_os = "macos")]
-use std::os::raw::{c_int, c_char, c_void};
-#[cfg(target_os = "macos")]
 use libc::size_t;
+#[cfg(target_os = "macos")]
+use std::os::raw::{c_char, c_int, c_void};
 
 #[cfg(target_os = "macos")]
-extern {
-    fn launch_activate_socket(name: *const c_char, fds: *mut *mut c_int, cnt: *mut size_t) -> c_int;
+extern "C" {
+    fn launch_activate_socket(name: *const c_char, fds: *mut *mut c_int, cnt: *mut size_t)
+        -> c_int;
 }
 
 #[cfg(target_os = "macos")]
 fn get_activation_socket() -> io::Result<net::UdpSocket> {
+    use libc::free;
     use std::ffi::CString;
+    use std::io::ErrorKind::Other;
     use std::os::unix::io::FromRawFd;
     use std::ptr::null_mut;
-    use std::io::ErrorKind::Other;
-    use libc::free;
     unsafe {
         let mut fds: *mut c_int = null_mut();
         let mut cnt: size_t = 0;
@@ -165,7 +173,10 @@ fn get_activation_socket() -> io::Result<net::UdpSocket> {
                 Err(io::Error::new(Other, "Could not get fd: cnt != 1"))
             }
         } else {
-            Err(io::Error::new(Other, "Could not get fd: launch_activate_socket != 0"))
+            Err(io::Error::new(
+                Other,
+                "Could not get fd: launch_activate_socket != 0",
+            ))
         }
     }
 }
@@ -173,19 +184,25 @@ fn get_activation_socket() -> io::Result<net::UdpSocket> {
 #[cfg(all(target_family = "unix", not(target_os = "macos")))]
 fn get_activation_socket() -> io::Result<net::UdpSocket> {
     use std::os::unix::io::FromRawFd;
-    unsafe {
-        Ok(net::UdpSocket::from_raw_fd(3))
-    }
+    unsafe { Ok(net::UdpSocket::from_raw_fd(3)) }
 }
 
 #[cfg(target_family = "windows")]
 fn get_activation_socket() -> io::Result<net::UdpSocket> {
     use std::io::ErrorKind::Other;
-    Err(io::Error::new(Other, "This is not supported in windows platforms"))
+    Err(io::Error::new(
+        Other,
+        "This is not supported in windows platforms",
+    ))
 }
 
 impl DnsCodec {
-    pub async fn new(listen: UdpListenSocket) -> io::Result<(SplitSink<UdpFramed<DnsCodec>, (DnsPacket, SocketAddr)>, SplitStream<UdpFramed<DnsCodec>>)> {
+    pub async fn new(
+        listen: UdpListenSocket,
+    ) -> io::Result<(
+        SplitSink<UdpFramed<DnsCodec>, (DnsPacket, SocketAddr)>,
+        SplitStream<UdpFramed<DnsCodec>>,
+    )> {
         let socket = match listen {
             UdpListenSocket::Addr(socket_addr) => UdpSocket::bind(&socket_addr).await?,
             UdpListenSocket::Activation => {

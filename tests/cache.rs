@@ -1,7 +1,6 @@
+use doh_client::Cache;
 use std::thread::sleep;
 use std::time::Duration;
-use doh_client::Cache;
-
 
 #[test]
 fn test_1() {

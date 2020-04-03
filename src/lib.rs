@@ -1,17 +1,16 @@
 #[macro_use]
 extern crate log;
 
-
-use std::sync::Arc;
 use std::net::SocketAddr;
 use std::process::exit;
+use std::sync::Arc;
 
 use rustls::ClientConfig;
 
 use futures::channel::mpsc::{unbounded, UnboundedSender};
 use futures::lock::Mutex;
-use futures::SinkExt;
 use futures::stream::StreamExt;
+use futures::SinkExt;
 
 use tokio::spawn;
 
@@ -21,17 +20,15 @@ use bytes::Bytes;
 
 use clap::{App, Arg};
 
-
 mod dns;
-use dns::{DnsPacket, DnsCodec};
 pub use dns::UdpListenSocket;
+use dns::{DnsCodec, DnsPacket};
 
 mod http2;
 use http2::{create_config, http2_request};
 
 mod cache;
 pub use cache::Cache;
-
 
 /// Get the `clap::App` object for the argument parsing.
 pub fn get_app() -> App<'static, 'static> {
@@ -132,10 +129,18 @@ pub struct Config {
 
 impl Config {
     /// Create a new `doh_client::Config` object.
-    pub fn new(listen_socket: UdpListenSocket, remote_addr: SocketAddr,
-               domain: &str, cafile: &str, path: &str, retries: u32,
-               timeout: u64, post: bool, cache_size: usize,
-               cache_fallback: bool) -> Config {
+    pub fn new(
+        listen_socket: UdpListenSocket,
+        remote_addr: SocketAddr,
+        domain: &str,
+        cafile: &str,
+        path: &str,
+        retries: u32,
+        timeout: u64,
+        post: bool,
+        cache_size: usize,
+        cache_fallback: bool,
+    ) -> Config {
         let client_config = match create_config(&cafile) {
             Ok(client_config) => client_config,
             Err(e) => {
@@ -161,7 +166,7 @@ impl Config {
             timeout,
             post,
             cache_size,
-            cache_fallback
+            cache_fallback,
         }
     }
 }
@@ -171,7 +176,7 @@ pub struct Context {
     config: Config,
     sender: UnboundedSender<(DnsPacket, SocketAddr)>,
     mutex_send_request: Mutex<Option<SendRequest<Bytes>>>,
-    mutex_cache: Mutex<Cache<Bytes, Bytes>>
+    mutex_cache: Mutex<Cache<Bytes, Bytes>>,
 }
 
 impl Context {
@@ -182,7 +187,7 @@ impl Context {
             config,
             sender,
             mutex_send_request: Mutex::new(None),
-            mutex_cache: Mutex::new(Cache::new(cache_size))
+            mutex_cache: Mutex::new(Cache::new(cache_size)),
         }
     }
 }
@@ -193,7 +198,10 @@ pub async fn run(config: Config) {
     let (mut dns_sink, mut dns_stream) = match DnsCodec::new(config.listen_socket).await {
         Ok(result) => result,
         Err(e) => {
-            error!("Cannot listen to UDP address {}: {}", config.listen_socket, e);
+            error!(
+                "Cannot listen to UDP address {}: {}",
+                config.listen_socket, e
+            );
             exit(1);
         }
     };
@@ -203,17 +211,17 @@ pub async fn run(config: Config) {
     let context: &'static Context = Box::leak(Box::new(Context::new(config, sender)));
 
     spawn(async move {
-       while let Some(result) = dns_stream.next().await {
-           match result {
-               Ok((msg, addr)) => {
-                   spawn(http2_request(msg, addr, context));
-               }
-               Err(e) => {
-                   error!("next: {}", e);
-                   exit(1);
-               }
-           }
-       }
+        while let Some(result) = dns_stream.next().await {
+            match result {
+                Ok((msg, addr)) => {
+                    spawn(http2_request(msg, addr, context));
+                }
+                Err(e) => {
+                    error!("next: {}", e);
+                    exit(1);
+                }
+            }
+        }
     });
 
     if let Err(e) = dns_sink.send_all(&mut receiver.map(Ok)).await {

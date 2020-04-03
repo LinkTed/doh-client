@@ -3,14 +3,12 @@ extern crate log;
 #[macro_use]
 extern crate clap;
 
-
 use std::net::SocketAddr;
 use std::process::exit;
 
 use env_logger::Builder;
 
-use doh_client::{Config, run, UdpListenSocket, get_app};
-
+use doh_client::{get_app, run, Config, UdpListenSocket};
 
 #[tokio::main]
 async fn main() {
@@ -49,6 +47,17 @@ async fn main() {
     let post: bool = !matches.is_present("get");
     let cache_size: usize = value_t!(matches, "cache-size", usize).unwrap_or(1024);
     let cache_fallback: bool = matches.is_present("cache-fallback");
-    let config = Config::new(listen_socket, remote_addr, domain, cafile, path, retries, timeout, post, cache_size, cache_fallback);
+    let config = Config::new(
+        listen_socket,
+        remote_addr,
+        domain,
+        cafile,
+        path,
+        retries,
+        timeout,
+        post,
+        cache_size,
+        cache_fallback,
+    );
     run(config).await
 }

@@ -1,16 +1,17 @@
-use std::time::{Instant, Duration};
 use std::hash::Hash;
+use std::time::{Duration, Instant};
 
 use lru::LruCache;
 
-
 pub struct Cache<K: Eq + Hash, V> {
-    lru_cache: LruCache<K, (V, Instant)>
+    lru_cache: LruCache<K, (V, Instant)>,
 }
 
 impl<K: Eq + Hash + Clone, V> Cache<K, V> {
     pub fn new(max_size: usize) -> Cache<K, V> {
-        Cache { lru_cache: LruCache::new(max_size) }
+        Cache {
+            lru_cache: LruCache::new(max_size),
+        }
     }
 
     pub fn get(&mut self, k: &K) -> Option<&V> {
@@ -45,4 +46,3 @@ impl<K: Eq + Hash + Clone, V> Cache<K, V> {
         self.lru_cache.put(k, (v, Instant::now() + d));
     }
 }
-
