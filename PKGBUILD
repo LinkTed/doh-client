@@ -5,13 +5,14 @@ pkgname=doh-client
 pkgver=2.1.2
 pkgrel=1
 pkgdesc="doh-client is a DNS over HTTPS client"
-arch=("x86_64")
+arch=("x86_64" "armv7h")
 url="https://github.com/LinkTed/doh-client"
 license=("BSD 3-Clause")
 depends=("ca-certificates-utils")
 makedepends=("cargo" "rust" "git" "binutils")
 source=("git+https://github.com/LinkTed/$pkgname.git#tag=v$pkgver")
 md5sums=("SKIP")
+conflicts=("dns-over-https" "dns-over-https-git" "dns-over-https-client-git")
 
 build() {
   cd $pkgname
