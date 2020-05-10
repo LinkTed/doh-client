@@ -21,6 +21,11 @@ Or to build it as a release build:
 ```
 $ cargo build --release
 ```
+On default, the feature socks5 proxy([RFC 1928](https://tools.ietf.org/html/rfc1928)) is enabled.
+To build the client without the feature use the following command:
+```
+$ cargo build --no-default-features
+```
 
 ### Run
 To run the binary, you need one positional argument (see [Usage](#Usage)).
@@ -78,7 +83,7 @@ repository can be applied to [AppArmor](https://gitlab.com/apparmor/apparmor/wik
    # systemctl restart apparmor.service
    ```
 ##### Arch Linux
-There is an AUR package available.
+There is an [AUR](https://aur.archlinux.org/packages/doh-client) package available.
 
 #### Mac OS (`launchd`)
 To run the `doh-client` as a daemon and without `root` under Mac OS with `launchd` as init system.
@@ -111,11 +116,11 @@ This example will connect to the Cloudflare DNS service.
 trusted CA certificates.
 ```
 $ ./doh-client --help
-DNS over HTTPS client 2.1.2
+DNS over HTTPS client 2.2.0
 link.ted@mailbox.org
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
-This binary uses the env\_logger as logger implementations. See https://github.com/sebasmagri/env\_logger/
+This binary uses the env_logger as logger implementations. See https://github.com/sebasmagri/env_logger/
 
 USAGE:
     doh-client [FLAGS] [OPTIONS] <CAFILE>
@@ -134,8 +139,11 @@ OPTIONS:
     -d, --domain <Domain>               The domain name of the remote server [default: cloudflare-dns.com]
     -l, --listen-addr <Addr>            Listen address [default: 127.0.0.1:53]
     -p, --path <STRING>                 The path of the URI [default: dns-query]
-    -r, --remote-addr <Addr>            Remote address [default: 1.1.1.1:443]
+    -r, --remote-host <Addr/Name>       Remote address/hostname to the DOH server (If a hostname is used then another
+                                        DNS server has to be configured) [default: 1.1.1.1:443]
         --retries <UNSIGNED INT>        The number of retries to connect to the remote server [default: 3]
+        --socks5 <URL>                  Socks5 proxy URL
+                                        (example: socks5://user:password@example.com or socks5h://example.com)
     -t, --timeout <UNSIGNED LONG>       The time in seconds after that the connection would be closed if no response is
                                         received from the server [default: 2]
 
@@ -196,6 +204,9 @@ github.com.     8   IN  A   192.30.253.113
 Now, the query took 0 milliseconds, because it was cached.
 
 How long is a DNS request and response in the cache?  
-- This depends on the response of HTTP header `control-cache: max-age=XXX`. For example, if the server responds with a 
-  `control-cache: max-age=100` then the DNS request and response is in the cache for 100 seconds. After 100 seconds, 
-  the client will forward the request to the server again.
+1. If `control-cache: max-age=XXX` is present in the HTTP header then this value is used. For example, if the server responds with a 
+   `control-cache: max-age=100` then the DNS request and response is in the cache for 100 seconds. After 100 seconds, 
+   the client will forward the request to the server again.
+2. If `control-cache: max-age=XXX` is not present then the smallest TTL in the answer section of the DNS response is used.
+3. If there is no resource records in the answer section then authority section of the DNS response is used.
+4. If there is no resource records in the authority section then additional section of the DNS response is used.
