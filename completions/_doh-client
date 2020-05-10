@@ -17,8 +17,8 @@ _doh-client() {
     _arguments "${_arguments_options[@]}" \
 '(--listen-activation)-l+[Listen address \[default: 127.0.0.1:53\]]' \
 '(--listen-activation)--listen-addr=[Listen address \[default: 127.0.0.1:53\]]' \
-'-r+[Remote address]' \
-'--remote-addr=[Remote address]' \
+'-r+[Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)]' \
+'--remote-host=[Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)]' \
 '-d+[The domain name of the remote server]' \
 '--domain=[The domain name of the remote server]' \
 '--retries=[The number of retries to connect to the remote server]' \
@@ -30,6 +30,8 @@ _doh-client() {
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)]' \
 '--cache-size=[The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)]' \
+'--socks5=[Socks5 proxy URL
+(example: socks5://user:password@example.com or socks5h://example.com)]' \
 '--listen-activation[Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS]' \
 '-g[Use the GET method for the HTTP/2.0 request]' \
 '--get[Use the GET method for the HTTP/2.0 request]' \

@@ -20,7 +20,7 @@ _doh-client() {
 
     case "${cmd}" in
         doh-client)
-            opts=" -g -h -V -l -r -d -t -p -c  --listen-activation --get --cache-fallback --help --version --listen-addr --remote-addr --domain --retries --timeout --path --cache-size  <CAFILE> "
+            opts=" -g -h -V -l -r -d -t -p -c  --listen-activation --get --cache-fallback --help --version --listen-addr --remote-host --domain --retries --timeout --path --cache-size --socks5  <CAFILE> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -35,7 +35,7 @@ _doh-client() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --remote-addr)
+                --remote-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -76,6 +76,10 @@ _doh-client() {
                     return 0
                     ;;
                     -c)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --socks5)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

@@ -22,8 +22,8 @@ Register-ArgumentCompleter -Native -CommandName 'doh-client' -ScriptBlock {
         'doh-client' {
             [CompletionResult]::new('-l', 'l', [CompletionResultType]::ParameterName, 'Listen address [default: 127.0.0.1:53]')
             [CompletionResult]::new('--listen-addr', 'listen-addr', [CompletionResultType]::ParameterName, 'Listen address [default: 127.0.0.1:53]')
-            [CompletionResult]::new('-r', 'r', [CompletionResultType]::ParameterName, 'Remote address')
-            [CompletionResult]::new('--remote-addr', 'remote-addr', [CompletionResultType]::ParameterName, 'Remote address')
+            [CompletionResult]::new('-r', 'r', [CompletionResultType]::ParameterName, 'Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)')
+            [CompletionResult]::new('--remote-host', 'remote-host', [CompletionResultType]::ParameterName, 'Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)')
             [CompletionResult]::new('-d', 'd', [CompletionResultType]::ParameterName, 'The domain name of the remote server')
             [CompletionResult]::new('--domain', 'domain', [CompletionResultType]::ParameterName, 'The domain name of the remote server')
             [CompletionResult]::new('--retries', 'retries', [CompletionResultType]::ParameterName, 'The number of retries to connect to the remote server')
@@ -35,6 +35,8 @@ Register-ArgumentCompleter -Native -CommandName 'doh-client' -ScriptBlock {
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)')
             [CompletionResult]::new('--cache-size', 'cache-size', [CompletionResultType]::ParameterName, 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)')
+            [CompletionResult]::new('--socks5', 'socks5', [CompletionResultType]::ParameterName, 'Socks5 proxy URL
+(example: socks5://user:password@example.com or socks5h://example.com)')
             [CompletionResult]::new('--listen-activation', 'listen-activation', [CompletionResultType]::ParameterName, 'Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS')
             [CompletionResult]::new('-g', 'g', [CompletionResultType]::ParameterName, 'Use the GET method for the HTTP/2.0 request')
             [CompletionResult]::new('--get', 'get', [CompletionResultType]::ParameterName, 'Use the GET method for the HTTP/2.0 request')

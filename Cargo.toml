@@ -1,6 +1,6 @@
 [package]
 name = "doh-client"
-version = "2.1.2"
+version = "2.2.0"
 edition = "2018"
 authors = ["LinkTed <link.ted@mailbox.org>"] 
 license = "BSD-3-Clause"
@@ -25,23 +25,36 @@ categories = [
 [badges]
 travis-ci = { repository = "LinkTed/doh-client" }
 
+[features]
+default = ["socks5"]
+socks5 = ["url", "tokio-socks"]
+
 [dependencies]
-libc = "0.2.68"
-data-encoding = "2.1.2"
+libc = "0.2.69"
+base64 = "0.12.1"
 log = "0.4.8"
 env_logger = "0.7.1"
 clap = "2.33.0"
 tokio-rustls = "0.12.2"
-futures = "0.3.4"
-h2 = "0.2.4"
+futures = "0.3.5"
+h2 = "0.2.5"
 http = "0.2.1" 
 rustls = "0.16.0"
 webpki = "0.21.2"
 bytes = "0.5.4"
 lru = "0.4.3"
+dns-message-parser = "0.2.0"
+
+[dependencies.url]
+version = "2.1.1"
+optional = true
+
+[dependencies.tokio-socks]
+version = "0.2.2"
+optional = true
 
 [dependencies.tokio]
-version = "0.2.14"
+version = "0.2.20"
 features = ["rt-threaded", "net", "time", "macros"]
 
 [dependencies.tokio-util]

@@ -2,10 +2,10 @@
 # Maintainer: LinkTed <link.ted@mailbox.org>
 
 pkgname=doh-client
-pkgver=2.1.2
+pkgver=2.2.0
 pkgrel=1
 pkgdesc="doh-client is a DNS over HTTPS client"
-arch=("x86_64")
+arch=("x86_64" "armv7h")
 url="https://github.com/LinkTed/doh-client"
 license=("BSD 3-Clause")
 depends=("ca-certificates-utils")

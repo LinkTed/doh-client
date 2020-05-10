@@ -3,12 +3,9 @@ extern crate log;
 #[macro_use]
 extern crate clap;
 
-use std::net::SocketAddr;
-use std::process::exit;
-
 use env_logger::Builder;
 
-use doh_client::{get_app, run, Config, UdpListenSocket};
+use doh_client::{get_app, get_listen_config, get_remote_host, run, Config};
 
 #[tokio::main]
 async fn main() {
@@ -17,26 +14,18 @@ async fn main() {
     let mut builder = Builder::from_default_env();
     builder.format_timestamp(None).init();
 
-    let listen_socket = if matches.is_present("listen-activation") {
-        UdpListenSocket::Activation
-    } else {
-        if matches.is_present("listen-addr") {
-            match matches.value_of("listen-addr").unwrap().parse() {
-                Ok(addr) => UdpListenSocket::Addr(addr),
-                Err(e) => {
-                    error!("Could not parse listen address: {}", e);
-                    exit(1);
-                }
-            }
-        } else {
-            UdpListenSocket::Addr("127.0.0.1:53".parse().unwrap())
+    let listen_config = match get_listen_config(&matches) {
+        Ok(listen_config) => listen_config,
+        Err(e) => {
+            error!("Could not get listen config: {}", e);
+            return;
         }
     };
-    let remote_addr: SocketAddr = match matches.value_of("remote-addr").unwrap().parse() {
-        Ok(addr) => addr,
+    let remote_host = match get_remote_host(&matches).await {
+        Ok(remote_host) => remote_host,
         Err(e) => {
-            error!("Could not parse remote address: {}", e);
-            exit(1);
+            error!("Could not get remote host: {:?}", e);
+            return;
         }
     };
     let domain = matches.value_of("domain").unwrap();
@@ -47,9 +36,9 @@ async fn main() {
     let post: bool = !matches.is_present("get");
     let cache_size: usize = value_t!(matches, "cache-size", usize).unwrap_or(1024);
     let cache_fallback: bool = matches.is_present("cache-fallback");
-    let config = Config::new(
-        listen_socket,
-        remote_addr,
+    let result = Config::new(
+        listen_config,
+        remote_host,
         domain,
         cafile,
         path,
@@ -59,5 +48,12 @@ async fn main() {
         cache_size,
         cache_fallback,
     );
-    run(config).await
+    match result {
+        Ok(config) => {
+            if let Err(e) = run(config).await {
+                error!("doh-client stopped: {}", e);
+            }
+        }
+        Err(e) => error!("Could not start doh-client: {}", e),
+    }
 }
