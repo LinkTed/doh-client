@@ -30,19 +30,19 @@ default = ["socks5"]
 socks5 = ["url", "tokio-socks"]
 
 [dependencies]
-libc = "0.2.69"
+libc = "0.2.71"
 base64 = "0.12.1"
 log = "0.4.8"
 env_logger = "0.7.1"
 clap = "2.33.0"
-tokio-rustls = "0.12.2"
+tokio-rustls = "0.13.1"
 futures = "0.3.5"
 h2 = "0.2.5"
 http = "0.2.1" 
-rustls = "0.16.0"
-webpki = "0.21.2"
+rustls = "0.17.0"
+webpki = "0.21.3"
 bytes = "0.5.4"
-lru = "0.4.3"
+lru = "0.5.1"
 dns-message-parser = "0.2.0"
 
 [dependencies.url]
@@ -54,7 +54,7 @@ version = "0.2.2"
 optional = true
 
 [dependencies.tokio]
-version = "0.2.20"
+version = "0.2.21"
 features = ["rt-threaded", "net", "time", "macros"]
 
 [dependencies.tokio-util]
