@@ -31,7 +31,7 @@ socks5 = ["url", "tokio-socks"]
 
 [dependencies]
 libc = "0.2.71"
-base64 = "0.12.1"
+base64 = "0.12.3"
 log = "0.4.8"
 env_logger = "0.7.1"
 clap = "2.33.0"
@@ -41,9 +41,9 @@ h2 = "0.2.5"
 http = "0.2.1" 
 rustls = "0.17.0"
 webpki = "0.21.3"
-bytes = "0.5.4"
-lru = "0.5.1"
-dns-message-parser = "0.2.0"
+bytes = "0.5.5"
+lru = "0.5.2"
+dns-message-parser = "0.3.0"
 
 [dependencies.url]
 version = "2.1.1"
