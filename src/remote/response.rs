@@ -52,7 +52,7 @@ fn get_duration(header: &Parts) -> Option<Duration> {
 fn get_min_ttl(dns: &Dns) -> Option<Duration> {
     let mut min_ttl = MAX;
 
-    for answer in dns.get_answers() {
+    for answer in &dns.answers {
         let ttl = *answer.get_ttl() as u64;
         if ttl < min_ttl {
             min_ttl = ttl;
@@ -60,7 +60,7 @@ fn get_min_ttl(dns: &Dns) -> Option<Duration> {
     }
 
     if min_ttl == MAX {
-        for authority in dns.get_authorities() {
+        for authority in &dns.authorities {
             let ttl = *authority.get_ttl() as u64;
             if ttl < min_ttl {
                 min_ttl = ttl;
@@ -69,7 +69,7 @@ fn get_min_ttl(dns: &Dns) -> Option<Duration> {
     }
 
     if min_ttl == MAX {
-        for additional in dns.get_additionals() {
+        for additional in &dns.additionals {
             let ttl = *additional.get_ttl() as u64;
             if ttl < min_ttl {
                 min_ttl = ttl;

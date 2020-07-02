@@ -126,12 +126,12 @@ impl Session {
     )> {
         self.connect().await?;
         let mut bytes = BytesMut::new();
-        let id = *dns_request.get_id();
-        dns_request.set_id(0);
+        let id = dns_request.id;
+        dns_request.id = 0;
         dns_request.encode(&mut bytes)?;
         debug!("Send DNS request to server: {}", dns_request);
         let data = bytes.freeze();
-        dns_request.set_id(id);
+        dns_request.id = id;
 
         match self.send_request(data).await {
             Ok(r) => Ok(r),

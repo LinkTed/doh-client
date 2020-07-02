@@ -19,7 +19,7 @@ fn send_response(
     addr: SocketAddr,
     sender: &UnboundedSender<(Bytes, SocketAddr)>,
 ) -> DohResult<()> {
-    dns_response.set_id(id);
+    dns_response.id = id;
     let bytes = dns_response.to_bytes()?;
     sender.unbounded_send((bytes, addr))?;
     Ok(())
@@ -36,7 +36,7 @@ async fn get_response_from_cache<'a>(
     addr: &SocketAddr,
 ) -> CacheReturn<'a> {
     if let Some(cache) = &context.cache {
-        let questions = dns_request.get_questions();
+        let questions = &dns_request.questions;
         if questions.len() == 1 {
             let question = &questions[0];
             let mut guard_cache = cache.lock().await;
@@ -47,7 +47,7 @@ async fn get_response_from_cache<'a>(
             };
 
             if let Some(dns_response) = entry {
-                let id = *dns_request.get_id();
+                let id = dns_request.id;
                 let sender = &context.sender;
                 let addr = *addr;
                 debug!("Question is found in cache");
@@ -118,7 +118,7 @@ async fn get_response_from_remote(
     drop(guard_remote_session);
     match result {
         Ok(response) => {
-            let id = *dns_request.get_id();
+            let id = dns_request.id;
             get_response(context, cache_question, response, id, addr).await
         }
         Err(e) => {
@@ -138,7 +138,7 @@ async fn get_response_from_cache_fallback<'a>(
         if let Some((cache, question)) = &cache_question {
             let mut guard_cache = cache.lock().await;
             if let Some(dns_response) = guard_cache.get_expired_fallback(question) {
-                let id = *dns_request.get_id();
+                let id = dns_request.id;
                 let sender = &context.sender;
                 debug!("Question is found in cache fallback");
                 Some(send_response(dns_response, id, addr, sender))
