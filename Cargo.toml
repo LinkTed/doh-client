@@ -30,7 +30,7 @@ default = ["socks5"]
 socks5 = ["url", "tokio-socks"]
 
 [dependencies]
-libc = "0.2.74"
+libc = "0.2.76"
 base64 = "0.12.3"
 log = "0.4.11"
 env_logger = "0.7.1"
@@ -39,7 +39,7 @@ tokio-rustls = "0.14.0"
 futures = "0.3.5"
 h2 = "0.2.6"
 http = "0.2.1" 
-rustls = "0.18.0"
+rustls = "0.18.1"
 webpki = "0.21.3"
 bytes = "0.5.6"
 lru = "0.6.0"
