@@ -20,6 +20,7 @@ extern "C" {
 fn get_activation_socket() -> IoResult<StdUdpSocket> {
     use libc::free;
     use std::ffi::CString;
+    use std::io;
     use std::io::ErrorKind::Other;
     use std::os::unix::io::FromRawFd;
     use std::ptr::null_mut;
@@ -30,7 +31,7 @@ fn get_activation_socket() -> IoResult<StdUdpSocket> {
         let name = CString::new("Listeners").expect("CString::new failed");
         if launch_activate_socket(name.as_ptr(), &mut fds, &mut cnt) == 0 {
             if cnt == 1 {
-                let socket = net::UdpSocket::from_raw_fd(*fds.offset(0));
+                let socket = StdUdpSocket::from_raw_fd(*fds.offset(0));
                 free(fds as *mut c_void);
                 Ok(socket)
             } else {
@@ -53,6 +54,7 @@ fn get_activation_socket() -> IoResult<StdUdpSocket> {
 
 #[cfg(target_family = "windows")]
 fn get_activation_socket() -> IoResult<StdUdpSocket> {
+    use std::io;
     use std::io::ErrorKind::Other;
     Err(io::Error::new(
         Other,
