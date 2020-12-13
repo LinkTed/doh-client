@@ -5,7 +5,6 @@ use clap::ArgMatches;
 #[cfg(feature = "socks5")]
 use std::borrow::Cow;
 use std::io::Error as IoError;
-use std::iter::FromIterator;
 use std::net::SocketAddr;
 #[cfg(feature = "socks5")]
 use std::net::{IpAddr, SocketAddrV4, SocketAddrV6};
@@ -59,7 +58,7 @@ async fn get_socks5_remote_addrs(url: &Url) -> Result<Vec<SocketAddr>, RemoteHos
                 if let Some(port) = url.port_or_known_default() {
                     let host = format!("{}:{}", host, port);
                     let remote_addrs = lookup_host(host).await?;
-                    let remote_addrs = Vec::from_iter(remote_addrs);
+                    let remote_addrs = remote_addrs.collect();
                     Ok(remote_addrs)
                 } else {
                     Err(RemoteHostError::UnknownPort(domain.to_string()))
@@ -178,7 +177,7 @@ async fn get_remote_addrs(
         Ok(addr) => Ok(vec![addr]),
         Err(_) => {
             let addr = lookup_host(remote_host).await?;
-            Ok(Vec::from_iter(addr))
+            Ok(addr.collect())
         }
     }
 }

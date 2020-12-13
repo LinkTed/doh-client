@@ -30,6 +30,7 @@ enum CacheReturn<'a> {
     NotFound(Option<(&'a Mutex<Cache<Question, Dns>>, Question)>),
 }
 
+#[allow(clippy::needless_lifetimes)]
 async fn get_response_from_cache<'a>(
     context: &'a Context,
     dns_request: &Dns,
@@ -128,6 +129,7 @@ async fn get_response_from_remote(
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 async fn get_response_from_cache_fallback<'a>(
     context: &'a Context,
     cache_question: Option<(&Mutex<Cache<Question, Dns>>, Question)>,

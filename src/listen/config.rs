@@ -46,6 +46,7 @@ fn get_activation_socket() -> IoResult<StdUdpSocket> {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 #[cfg(all(target_family = "unix", not(target_os = "macos")))]
 fn get_activation_socket() -> IoResult<StdUdpSocket> {
     use std::os::unix::io::FromRawFd;
