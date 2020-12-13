@@ -22,9 +22,6 @@ categories = [
     "network-programming"
     ]
 
-[badges]
-travis-ci = { repository = "LinkTed/doh-client" }
-
 [features]
 default = ["socks5"]
 socks5 = ["url", "tokio-socks"]
