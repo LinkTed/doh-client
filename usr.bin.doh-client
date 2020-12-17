@@ -43,7 +43,13 @@ profile doh-client /usr/bin/doh-client {
   network inet6 stream,
   # --  END  -- Network
 
-  # -- BEGIN -- /etc/ca-certificates/extracted
+  # -- BEGIN -- Certs
+  /etc/ssl/ r,
+  /etc/ssl/certs/ r,
+  /etc/ssl/certs/* r,
   /etc/ca-certificates/extracted/tls-ca-bundle.pem r,
-  # --  END  -- /etc/ca-certificates/extracted
+  /var/lib/ca-certificates/extracted/tls-ca-bundle.pem r,
+  /usr/share/ca-certificates/extracted/tls-ca-bundle.pem r,
+  /usr/local/share/ca-certificates/extracted/tls-ca-bundle.pem r,
+  # --  END  -- Certs
 }

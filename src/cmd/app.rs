@@ -1,3 +1,4 @@
+use cfg_if::cfg_if;
 use clap::{App, Arg};
 
 /// Get the `clap::App` object for the argument parsing.
@@ -76,13 +77,6 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("cafile")
-                .takes_value(true)
-                .value_name("CAFILE")
-                .help("The path to the pem file, which contains the trusted CA certificates")
-                .required(true),
-        )
-        .arg(
             Arg::with_name("path")
                 .short("p")
                 .long("path")
@@ -118,6 +112,28 @@ pub fn get_app() -> App<'static, 'static> {
                 .help("Use expired cache entries if no response is received from the server")
                 .required(false),
         );
+
+    cfg_if! {
+        if #[cfg(feature = "native-certs")] {
+            let app = app.arg(
+                Arg::with_name("cafile")
+                    .takes_value(true)
+                    .value_name("CAFILE")
+                    .help("The path to the pem file, which contains the trusted CA certificates\n \
+                        If no path is given then the platform's native certificate store will be \
+                        used")
+                    .required(false),
+            );
+        } else {
+            let app = app.arg(
+                Arg::with_name("cafile")
+                    .takes_value(true)
+                    .value_name("CAFILE")
+                    .help("The path to the pem file, which contains the trusted CA certificates")
+                    .required(true),
+            );
+        }
+    }
 
     #[cfg(feature = "socks5")]
     let app = app.arg(

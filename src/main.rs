@@ -29,7 +29,7 @@ async fn main() {
         }
     };
     let domain = matches.value_of("domain").unwrap();
-    let cafile = matches.value_of("cafile").unwrap();
+    let cafile = matches.value_of("cafile");
     let path = matches.value_of("path").unwrap();
     let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
     let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
