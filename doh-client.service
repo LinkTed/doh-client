@@ -5,7 +5,7 @@ Before=nss-lookup.target
 Requires=doh-client.socket
 
 [Service]
-ExecStart=/usr/bin/doh-client --listen-activation /etc/ca-certificates/extracted/tls-ca-bundle.pem
+ExecStart=/usr/bin/doh-client --listen-activation
 Environment=RUST_LOG="info"
 
 ## Scheduling
@@ -48,12 +48,11 @@ SecureBits=no-cap-ambient-raise,no-cap-ambient-raise-locked
 
 # System Call Filtering
 ##
-SystemCallFilter=ioctl munmap getsockopt epoll_wait recvfrom fcntl clone futex
-SystemCallFilter=mmap setsockopt rt_sigaction getrandom pipe2 prlimit64 socket
-SystemCallFilter=write epoll_ctl read set_robust_list sigaltstack sched_yield
-SystemCallFilter=pread64 brk epoll_create1 arch_prctl set_tid_address openat
-SystemCallFilter=fstat bind sendto access mprotect rt_sigprocmask prctl
-SystemCallFilter=sched_getaffinity execve close connect shutdown
+SystemCallFilter=prlimit64 poll read ioctl sched_yield recvfrom prctl rt_sigaction mprotect clone
+SystemCallFilter=pread64 munmap arch_prctl openat sigaltstack setsockopt rt_sigprocmask sendto write
+SystemCallFilter=fstat pipe2 socket access epoll_wait getrandom getsockopt execve sched_getaffinity
+SystemCallFilter=bind close set_robust_list epoll_ctl connect mmap statx fcntl brk epoll_create1
+SystemCallFilter=set_tid_address futex shutdown
 ##
 SystemCallErrorNumber=EPERM
 
