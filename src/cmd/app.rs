@@ -1,11 +1,11 @@
 use cfg_if::cfg_if;
-use clap::{App, Arg};
+use clap::{crate_authors, crate_description, crate_version, App, Arg};
 
 /// Get the `clap::App` object for the argument parsing.
 pub fn get_app() -> App<'static, 'static> {
-    let app = App::new("DNS over HTTPS client")
-        .version("2.2.0")
-        .author("link.ted@mailbox.org")
+    let app = App::new(crate_description!())
+        .version(crate_version!())
+        .author(crate_authors!())
         .about(
             "Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
         By default, the client will connect to the Cloudflare DNS service.\n\
@@ -119,7 +119,7 @@ pub fn get_app() -> App<'static, 'static> {
                 Arg::with_name("cafile")
                     .takes_value(true)
                     .value_name("CAFILE")
-                    .help("The path to the pem file, which contains the trusted CA certificates\n \
+                    .help("The path to the pem file, which contains the trusted CA certificates\n\
                         If no path is given then the platform's native certificate store will be \
                         used")
                     .required(false),
