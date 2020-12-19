@@ -1,7 +1,6 @@
+use super::Connection;
 use std::fmt::{Display, Formatter, Result};
 use std::net::SocketAddr;
-
-use super::Connection;
 #[cfg(feature = "socks5")]
 use tokio_socks::TargetAddr;
 

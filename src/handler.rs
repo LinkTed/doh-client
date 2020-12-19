@@ -1,17 +1,13 @@
+use crate::context::Context;
+use crate::{Cache, DohError, DohResult};
 use bytes::Bytes;
-
-use crate::{Cache, Context, DohError, DohResult};
-
 use dns_message_parser::{Dns, Question};
-
 use futures::channel::mpsc::UnboundedSender;
 use futures::lock::Mutex;
-
-use tokio::time::timeout as create_timeout;
-
 use std::future::Future;
 use std::net::SocketAddr;
 use std::time::Duration;
+use tokio::time::timeout as create_timeout;
 
 fn send_response(
     dns_response: &mut Dns,

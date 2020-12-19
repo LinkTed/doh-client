@@ -1,20 +1,13 @@
-use base64::{encode_config, URL_SAFE_NO_PAD};
-
-use bytes::{Bytes, BytesMut};
-
+use super::{response_handler, Config, Connection, Host};
 use crate::{DohError, DohResult};
-
+use base64::{encode_config, URL_SAFE_NO_PAD};
+use bytes::{Bytes, BytesMut};
 use dns_message_parser::Dns;
-
+use http::Request;
+use rustls::ClientConfig;
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
-
-use http::Request;
-
-use super::{response_handler, Config, Connection, Host};
-
-use rustls::ClientConfig;
 
 pub(crate) struct Session {
     config: Config,

@@ -1,14 +1,12 @@
+#[cfg(target_os = "macos")]
+use libc::size_t;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::io::Result as IoResult;
 use std::net::SocketAddr;
 use std::net::UdpSocket as StdUdpSocket;
-
-use tokio::net::UdpSocket as TokioUdpSocket;
-
-#[cfg(target_os = "macos")]
-use libc::size_t;
 #[cfg(target_os = "macos")]
 use std::os::raw::{c_char, c_int, c_void};
+use tokio::net::UdpSocket as TokioUdpSocket;
 
 #[cfg(target_os = "macos")]
 extern "C" {

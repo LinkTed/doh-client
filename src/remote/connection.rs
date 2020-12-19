@@ -1,24 +1,17 @@
-use bytes::Bytes;
-
-use crate::{DohError, DohResult};
-
-use h2::client::{ResponseFuture, SendRequest};
-use h2::SendStream;
-
-use http::Request;
-
-use std::fmt::{Display, Formatter, Result as FmtResult};
-use std::net::SocketAddr;
-use std::sync::Arc;
-
 #[cfg(feature = "socks5")]
 use super::socks5_connect;
 use super::{http2_connect, tcp_connect, try_tls_connect};
-
+use crate::{DohError, DohResult};
+use bytes::Bytes;
+use h2::client::{ResponseFuture, SendRequest};
+use h2::SendStream;
+use http::Request;
+use rustls::ClientConfig;
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::net::SocketAddr;
+use std::sync::Arc;
 #[cfg(feature = "socks5")]
 use tokio_socks::TargetAddr;
-
-use rustls::ClientConfig;
 
 macro_rules! send_request_option {
     ($self:ident) => {

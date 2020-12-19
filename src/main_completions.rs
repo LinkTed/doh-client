@@ -1,5 +1,4 @@
 use clap::Shell::*;
-
 use doh_client::get_app;
 
 fn main() {

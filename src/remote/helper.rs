@@ -1,27 +1,20 @@
-use bytes::Bytes;
-
 use crate::{DohError, DohResult};
-
+use bytes::Bytes;
 use h2::client::{handshake, SendRequest};
-
+use rustls::ClientConfig;
 use std::io::Result as IoResult;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio::spawn;
-
-use rustls::ClientConfig;
-
 use tokio_rustls::client::TlsStream;
 use tokio_rustls::TlsConnector;
 #[cfg(feature = "socks5")]
 use tokio_socks::tcp::Socks5Stream;
 #[cfg(feature = "socks5")]
 use tokio_socks::TargetAddr;
-
 use webpki::DNSNameRef;
 
 fn set_tcp_option(tcp_connection: &mut TcpStream) -> IoResult<()> {

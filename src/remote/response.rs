@@ -1,14 +1,9 @@
-use bytes::{Bytes, BytesMut};
-
 use crate::{DohError, DohResult};
-
+use bytes::{Bytes, BytesMut};
 use dns_message_parser::{Dns, MAXIMUM_DNS_PACKET_SIZE};
-
 use h2::client::ResponseFuture;
 use h2::RecvStream;
-
 use http::response::Parts;
-
 use std::time::Duration;
 use std::u64::MAX;
 

@@ -1,5 +1,5 @@
 mod config;
-pub use config::Config;
-
 mod handler;
+
+pub use config::Config;
 pub(crate) use handler::handler;

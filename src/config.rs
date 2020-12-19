@@ -1,6 +1,7 @@
+use crate::context::Context;
 use crate::listen::{handler as listen_handler, Config as ListenConfig};
 use crate::remote::{Host as RemoteHost, Session as RemoteSession};
-use crate::{get_listen_config, get_remote_host, Cache, Context, DohError, DohResult};
+use crate::{get_listen_config, get_remote_host, Cache, DohError, DohResult};
 use cfg_if::cfg_if;
 use clap::{value_t, ArgMatches};
 use futures::lock::Mutex;

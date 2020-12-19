@@ -1,6 +1,5 @@
 use std::hash::Hash;
 use std::time::{Duration, Instant};
-
 use lru::LruCache;
 
 pub(crate) struct Cache<K: Eq + Hash, V> {
