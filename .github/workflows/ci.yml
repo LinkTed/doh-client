@@ -48,11 +48,28 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features ---all-targets -- --deny warnings -A clippy::unknown-clippy-lints
+          args: -- --deny warnings -A clippy::unknown-clippy-lints
+
+  clippy-windows-service:
+    name: Job clippy windows service
+    needs: rustfmt
+    runs-on: windows-latest
+    steps:
+      - name: Install toolchain with clippy
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+      - uses: actions/checkout@v2
+      - name: Run clippy windows service
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --bin windows-service --features main-windows-service -- --deny warnings -A clippy::unknown-clippy-lints
 
   tests:
     name: Job tests
-    needs: clippy
+    needs: [clippy, clippy-windows-service]
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]

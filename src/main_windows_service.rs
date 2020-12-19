@@ -34,7 +34,7 @@ fn windows_service_event_handler(control_event: ServiceControl) -> ServiceContro
                         controls_accepted: ServiceControlAccept::STOP,
                         exit_code: ServiceExitCode::Win32(0),
                         checkpoint: 0,
-                        wait_hint: TIMEOUT.clone(),
+                        wait_hint: *TIMEOUT,
                         process_id: None,
                     };
 
@@ -84,7 +84,6 @@ fn windows_service_doh_client(arguments: Vec<OsString>) {
         process_id: None,
     };
 
-    // Tell the system that the service is running now
     status_handle.set_service_status(next_status).unwrap();
 
     runtime.spawn(async {
