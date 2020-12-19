@@ -1,44 +1,32 @@
 use crate::RemoteHost;
-
 use clap::ArgMatches;
-
 #[cfg(feature = "socks5")]
 use std::borrow::Cow;
 use std::io::Error as IoError;
 use std::net::SocketAddr;
 #[cfg(feature = "socks5")]
 use std::net::{IpAddr, SocketAddrV4, SocketAddrV6};
-
+use thiserror::Error as ThisError;
+use tokio::net::lookup_host;
 #[cfg(feature = "socks5")]
 use tokio_socks::TargetAddr;
-
-use tokio::net::lookup_host;
-
 #[cfg(feature = "socks5")]
 use url::{Host, ParseError, Url};
 
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub enum RemoteHostError {
     #[cfg(feature = "socks5")]
-    Socks5(ParseError),
+    #[error("Could not parse socks5 URL: {0}")]
+    ParseError(#[from] ParseError),
     #[cfg(feature = "socks5")]
+    #[error("Could not parse socks5 scheme: {0}")]
     Socks5Scheme(String),
-    CouldNotResolve(String),
+    #[error("IO Error: {0}")]
+    IoError(#[from] IoError),
+    #[error("Unknown port: {0}")]
     UnknownPort(String),
+    #[error("Unknown host: {0}")]
     UnknownHost(String),
-}
-
-#[cfg(feature = "socks5")]
-impl From<ParseError> for RemoteHostError {
-    fn from(e: ParseError) -> Self {
-        RemoteHostError::Socks5(e)
-    }
-}
-
-impl From<IoError> for RemoteHostError {
-    fn from(e: IoError) -> Self {
-        RemoteHostError::CouldNotResolve(e.to_string())
-    }
 }
 
 #[cfg(feature = "socks5")]

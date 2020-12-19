@@ -26,6 +26,7 @@ categories = [
 default = ["socks5", "native-certs"]
 socks5 = ["url", "tokio-socks"]
 native-certs = ["rustls-native-certs"]
+main-windows-service = ["windows-service", "winlog"]
 
 [dependencies]
 libc = "0.2.76"
@@ -43,6 +44,8 @@ bytes = "0.5.6"
 lru = "0.6.0"
 dns-message-parser = "0.3.0"
 cfg-if = "1.0.0"
+lazy_static = "1.4.0"
+thiserror = "1.0.22"
 
 [dependencies.url]
 version = "2.1.1"
@@ -60,9 +63,22 @@ features = ["rt-threaded", "net", "time", "macros"]
 version = "0.4.0"
 optional = true
 
+[dependencies.windows-service]
+version = "0.3.1"
+optional = true
+
+[dependencies.winlog]
+version =  "0.2.6"
+optional = true
+
 [[bin]]
 name = "completions"
 path = "src/main_completions.rs"
+
+[[bin]]
+name = "windows-service"
+path = "src/main_windows_service.rs"
+required-features = ["main-windows-service"]
 
 [profile.release]
 lto = true

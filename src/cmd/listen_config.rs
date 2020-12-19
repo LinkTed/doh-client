@@ -1,7 +1,5 @@
 use crate::ListenConfig;
-
 use clap::ArgMatches;
-
 use std::net::AddrParseError;
 
 pub fn get_listen_config(arg_matches: &ArgMatches) -> Result<ListenConfig, AddrParseError> {

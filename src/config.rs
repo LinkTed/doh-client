@@ -1,10 +1,10 @@
 use crate::listen::{handler as listen_handler, Config as ListenConfig};
 use crate::remote::{Host as RemoteHost, Session as RemoteSession};
-use crate::{Cache, Context, DohError, DohResult};
+use crate::{get_listen_config, get_remote_host, Cache, Context, DohError, DohResult};
 use cfg_if::cfg_if;
+use clap::{value_t, ArgMatches};
 use futures::lock::Mutex;
-use rustls::ClientConfig;
-use rustls::RootCertStore;
+use rustls::{ClientConfig, RootCertStore};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Result as IoResult;
@@ -92,6 +92,31 @@ impl Config {
             cache_size,
             cache_fallback,
         })
+    }
+
+    pub async fn try_from(matches: ArgMatches<'static>) -> DohResult<Config> {
+        let listen_config = get_listen_config(&matches)?;
+        let remote_host = get_remote_host(&matches).await?;
+        let domain = matches.value_of("domain").unwrap();
+        let cafile = matches.value_of("cafile");
+        let path = matches.value_of("path").unwrap();
+        let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
+        let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
+        let post: bool = !matches.is_present("get");
+        let cache_size: usize = value_t!(matches, "cache-size", usize).unwrap_or(1024);
+        let cache_fallback: bool = matches.is_present("cache-fallback");
+        Config::new(
+            listen_config,
+            remote_host,
+            domain,
+            cafile,
+            path,
+            retries,
+            timeout,
+            post,
+            cache_size,
+            cache_fallback,
+        )
     }
 
     pub(crate) async fn into(self) -> IoResult<(RecvHalf, Context)> {

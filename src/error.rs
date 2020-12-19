@@ -1,110 +1,65 @@
+use crate::cmd::RemoteHostError;
 use bytes::Bytes;
-
 use dns_message_parser::{DecodeError, Dns, EncodeError};
-
 use futures::channel::mpsc::TrySendError;
-
 use h2::Error as H2Error;
-
 use http::{HeaderValue, StatusCode};
-
-use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::io::Error as IoError;
-use std::net::SocketAddr;
+use std::net::{AddrParseError, SocketAddr};
+use thiserror::Error as ThisError;
 #[cfg(feature = "socks5")]
 use tokio_socks::Error as SocksError;
 
+#[derive(Debug, ThisError)]
 pub enum Error {
-    Io(IoError),
-    H2(H2Error),
-    Decode(DecodeError),
-    Encode(EncodeError),
-    TrySend(TrySendError<(Bytes, SocketAddr)>),
+    #[error("IO Error: {0}")]
+    IoError(#[from] IoError),
+    #[error("H2 Error: {0}")]
+    H2Error(#[from] H2Error),
+    #[error("Decode Error: {0:?}")]
+    DecodeError(DecodeError),
+    #[error("Encode Error: {0:?}")]
+    EncodeError(EncodeError),
+    #[error("Could not send to the response handler: {0}")]
+    TrySendError(#[from] TrySendError<(Bytes, SocketAddr)>),
     #[cfg(feature = "socks5")]
-    Socks(SocksError),
+    #[error("Socks Error: {0}")]
+    SocksError(#[from] SocksError),
+    #[error("doh-client is not connected")]
     IsNotConnected,
+    #[error("Cannot parse pem file")]
     PEMParser,
+    #[error("Cache size is zero and cache fallback is enabled simultaneously")]
     CacheSize,
+    #[error("Could not connect to any address: {0:?}")]
     CouldNotConnect(Vec<SocketAddr>),
+    #[error("Could not get response for: {0:?}")]
     CouldNotGetResponse(Dns),
+    #[error("Header status: got {0}")]
     HeaderStatus(StatusCode),
+    #[error("Header content type: got {0:?} expected application/dns-message")]
     HeaderContentType(HeaderValue),
+    #[error("Header content type is missing")]
     HeaderNoContentType,
+    #[error("DNS packet is not a request: {0:?}")]
     DnsNotRequest(Dns),
+    #[error("DNS packet is not a response: {0:?}")]
     DnsNotResponse(Dns),
-}
-
-impl From<IoError> for Error {
-    fn from(e: IoError) -> Self {
-        Error::Io(e)
-    }
-}
-
-impl From<H2Error> for Error {
-    fn from(e: H2Error) -> Self {
-        Error::H2(e)
-    }
+    #[error("Could not get listen config: {0}")]
+    AddrParseError(#[from] AddrParseError),
+    #[error("Remote Error: {0}")]
+    RemoteHostError(#[from] RemoteHostError),
 }
 
 impl From<DecodeError> for Error {
-    fn from(e: DecodeError) -> Self {
-        Error::Decode(e)
+    fn from(decode_error: DecodeError) -> Self {
+        Error::DecodeError(decode_error)
     }
 }
 
 impl From<EncodeError> for Error {
-    fn from(e: EncodeError) -> Self {
-        Error::Encode(e)
-    }
-}
-
-impl From<TrySendError<(Bytes, SocketAddr)>> for Error {
-    fn from(e: TrySendError<(Bytes, SocketAddr)>) -> Self {
-        Error::TrySend(e)
-    }
-}
-#[cfg(feature = "socks5")]
-impl From<SocksError> for Error {
-    fn from(e: SocksError) -> Self {
-        match e {
-            SocksError::Io(e) => Error::Io(e),
-            e => Error::Socks(e),
-        }
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            Error::Io(e) => write!(f, "IO Error: {}", e),
-            Error::H2(e) => write!(f, "H2 Error: {}", e),
-            Error::Decode(e) => write!(f, "Decode Error: {:?}", e),
-            Error::Encode(e) => write!(f, "Encode Error: {:?}", e),
-            Error::TrySend(e) => write!(f, "Could not send to the response handler: {}", e),
-            #[cfg(feature = "socks5")]
-            Error::Socks(e) => write!(f, "Socks Error: {}", e),
-            Error::IsNotConnected => write!(f, "doh-client is not connected"),
-            Error::PEMParser => write!(f, "Cannot parse pem file"),
-            Error::CacheSize => write!(
-                f,
-                "Cache size is zero and cache fallback is enabled simultaneously"
-            ),
-            Error::CouldNotConnect(remote_addrs) => {
-                write!(f, "Could not connect to any address: {:?}", remote_addrs)
-            }
-            Error::CouldNotGetResponse(dns_request) => {
-                write!(f, "Could not get response for: {:?}", dns_request)
-            }
-            Error::HeaderStatus(status) => write!(f, "Header status: got {}", status),
-            Error::HeaderContentType(content_type) => write!(
-                f,
-                "Header content type: got {:?} expected application/dns-message",
-                content_type
-            ),
-            Error::HeaderNoContentType => write!(f, "Header content type is missing"),
-            Error::DnsNotRequest(dns) => write!(f, "DNS packet is not a request: {:?}", dns),
-            Error::DnsNotResponse(dns) => write!(f, "DNS packet is not a response: {:?}", dns),
-        }
+    fn from(encode_error: EncodeError) -> Self {
+        Error::EncodeError(encode_error)
     }
 }
 
