@@ -27,7 +27,7 @@ $ cargo build --no-default-features
 ```
 
 ### Run
-To run the binary, you need one positional argument (see [Usage](#Usage)).
+To run the binary, you need one positional argument, if `native-certs` feature is not active (see [Usage](#Usage)).
 ```
 $ ./doh-client /path/to/the/ca/file.pem
 ```
@@ -206,6 +206,4 @@ How long is a DNS request and response in the cache?
 1. If `control-cache: max-age=XXX` is present in the HTTP header then this value is used. For example, if the server responds with a 
    `control-cache: max-age=100` then the DNS request and response is in the cache for 100 seconds. After 100 seconds, 
    the client will forward the request to the server again.
-2. If `control-cache: max-age=XXX` is not present then the smallest TTL in the answer section of the DNS response is used.
-3. If there is no resource records in the answer section then authority section of the DNS response is used.
-4. If there is no resource records in the authority section then additional section of the DNS response is used.
+2. If `control-cache: max-age=XXX` is not present then the smallest TTL in the answer, authority and additional section of the DNS response is used.
