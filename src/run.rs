@@ -8,7 +8,7 @@ use tokio::spawn;
 
 /// Run the `doh-client` with a specific configuration.
 pub async fn run(config: Config) -> DohResult<()> {
-    let (mut recv, context) = config.into().await?;
+    let (recv, context) = config.into().await?;
 
     let context: &'static Context = Box::leak(Box::new(context));
 

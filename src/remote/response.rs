@@ -5,7 +5,6 @@ use h2::client::ResponseFuture;
 use h2::RecvStream;
 use http::response::Parts;
 use std::time::Duration;
-use std::u64::MAX;
 
 fn check_header_status(header: &Parts) -> DohResult<()> {
     if header.status.is_success() {
@@ -44,39 +43,44 @@ fn get_duration(header: &Parts) -> Option<Duration> {
     None
 }
 
+#[inline]
+fn min(min_ttl: &mut Option<u32>, new_value: Option<u32>) {
+    match min_ttl {
+        Some(min_ttl) => {
+            if let Some(new_value) = new_value {
+                if new_value < *min_ttl {
+                    *min_ttl = new_value;
+                }
+            }
+        }
+        None => {
+            if let Some(new_value) = new_value {
+                min_ttl.replace(new_value);
+            }
+        }
+    }
+}
+
 fn get_min_ttl(dns: &Dns) -> Option<Duration> {
-    let mut min_ttl = MAX;
+    let mut min_ttl = None;
 
     for answer in &dns.answers {
-        let ttl = *answer.get_ttl() as u64;
-        if ttl < min_ttl {
-            min_ttl = ttl;
-        }
+        let ttl = answer.get_ttl();
+        min(&mut min_ttl, ttl);
     }
 
-    if min_ttl == MAX {
-        for authority in &dns.authorities {
-            let ttl = *authority.get_ttl() as u64;
-            if ttl < min_ttl {
-                min_ttl = ttl;
-            }
-        }
+    for authority in &dns.authorities {
+        let ttl = authority.get_ttl();
+        min(&mut min_ttl, ttl);
     }
 
-    if min_ttl == MAX {
-        for additional in &dns.additionals {
-            let ttl = *additional.get_ttl() as u64;
-            if ttl < min_ttl {
-                min_ttl = ttl;
-            }
-        }
+    for additional in &dns.additionals {
+        let ttl = additional.get_ttl();
+        min(&mut min_ttl, ttl);
     }
 
-    if min_ttl == MAX || min_ttl == 0 {
-        None
-    } else {
-        Some(Duration::from_secs(min_ttl))
-    }
+    let min_ttl = min_ttl?;
+    Some(Duration::from_secs(min_ttl as u64))
 }
 
 async fn get_body(recv_stream: &mut RecvStream) -> DohResult<Bytes> {
@@ -104,7 +108,7 @@ async fn get_body(recv_stream: &mut RecvStream) -> DohResult<Bytes> {
 
 async fn get_dns_response(recv_stream: &mut RecvStream) -> DohResult<Dns> {
     let body = get_body(recv_stream).await?;
-    let dns_response = Dns::decode(&body)?;
+    let dns_response = Dns::decode(body)?;
     if !dns_response.is_response() {
         return Err(DohError::DnsNotResponse(dns_response));
     }
@@ -132,9 +136,8 @@ pub(super) async fn response_handler(
 
 #[cfg(test)]
 mod tests {
-    use http::response::Builder;
-
     use super::check_header_status;
+    use http::response::Builder;
 
     #[test]
     fn test_check_header_status_200() {

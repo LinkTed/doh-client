@@ -1,19 +1,15 @@
-use bytes::Bytes;
-
 use crate::remote::Session as RemoteSession;
 use crate::Cache;
-
-use dns_message_parser::{Dns, Question};
-
-use futures::channel::mpsc::UnboundedSender;
+use dns_message_parser::question::Question;
+use dns_message_parser::Dns;
 use futures::lock::Mutex;
-
-use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::net::UdpSocket;
 
 /// The context object for a running instance.
 pub struct Context {
-    pub(crate) sender: UnboundedSender<(Bytes, SocketAddr)>,
+    pub(crate) sender: Arc<UdpSocket>,
     pub(crate) remote_session: Mutex<RemoteSession>,
     pub(crate) cache: Option<Mutex<Cache<Question, Dns>>>,
     pub(super) cache_fallback: bool,
@@ -27,7 +23,7 @@ impl Context {
         cache_fallback: bool,
         timeout: u64,
         remote_session: RemoteSession,
-        sender: UnboundedSender<(Bytes, SocketAddr)>,
+        sender: Arc<UdpSocket>,
     ) -> Context {
         Context {
             sender,

@@ -5,7 +5,6 @@ use rustls::ClientConfig;
 use std::io::Result as IoResult;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio::spawn;
@@ -16,12 +15,6 @@ use tokio_socks::tcp::Socks5Stream;
 #[cfg(feature = "socks5")]
 use tokio_socks::TargetAddr;
 use webpki::DNSNameRef;
-
-fn set_tcp_option(tcp_connection: &mut TcpStream) -> IoResult<()> {
-    tcp_connection.set_keepalive(Some(Duration::from_secs(1)))?;
-    tcp_connection.set_nodelay(true)?;
-    Ok(())
-}
 
 pub(super) async fn http2_connect<T>(connection: T) -> DohResult<SendRequest<Bytes>>
 where
@@ -52,8 +45,8 @@ where
 }
 
 async fn try_tcp_connect(remote_addr: &SocketAddr) -> IoResult<TcpStream> {
-    let mut tcp_connection = TcpStream::connect(remote_addr).await?;
-    set_tcp_option(&mut tcp_connection)?;
+    let tcp_connection = TcpStream::connect(remote_addr).await?;
+    tcp_connection.set_nodelay(true)?;
     Ok(tcp_connection)
 }
 
@@ -63,7 +56,6 @@ pub(super) async fn tcp_connect(remote_addrs: &[SocketAddr]) -> DohResult<TcpStr
             Ok(tcp_connection) => return Ok(tcp_connection),
             Err(e) => {
                 error!("Could not connectio to {}: {}", remote_addr, e);
-                continue;
             }
         };
     }
@@ -81,8 +73,8 @@ async fn try_socks5_connect(
     } else {
         Socks5Stream::connect(remote_addr, dest_addr).await
     }?;
-    let mut tcp_connection = socks5_connection.into_inner();
-    set_tcp_option(&mut tcp_connection)?;
+    let tcp_connection = socks5_connection.into_inner();
+    tcp_connection.set_nodelay(true)?;
     Ok(tcp_connection)
 }
 #[cfg(feature = "socks5")]
@@ -101,7 +93,6 @@ pub(super) async fn socks5_connect(
                         "Could not connect to {:?} via socks5 proxy {}: {}",
                         dest_addr, remote_addr, e
                     );
-                    continue;
                 }
             }
         }

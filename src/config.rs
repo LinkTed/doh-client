@@ -1,5 +1,6 @@
 use crate::context::Context;
-use crate::listen::{handler as listen_handler, Config as ListenConfig};
+use crate::listen::Config as ListenConfig;
+//use crate::listen::{handler as listen_handler, Config as ListenConfig};
 use crate::remote::{Host as RemoteHost, Session as RemoteSession};
 use crate::{get_listen_config, get_remote_host, Cache, DohError, DohResult};
 use cfg_if::cfg_if;
@@ -10,7 +11,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::Result as IoResult;
 use std::sync::Arc;
-use tokio::net::udp::RecvHalf;
+use tokio::net::UdpSocket;
 
 fn create_client_config(cafile: Option<&str>) -> DohResult<ClientConfig> {
     let root_store = load_root_store(cafile)?;
@@ -120,7 +121,7 @@ impl Config {
         )
     }
 
-    pub(crate) async fn into(self) -> IoResult<(RecvHalf, Context)> {
+    pub(crate) async fn into(self) -> IoResult<(Arc<UdpSocket>, Context)> {
         let cache = if self.cache_size == 0 {
             None
         } else {
@@ -129,7 +130,7 @@ impl Config {
         let cache_fallback = self.cache_fallback;
         let timeout = self.timeout;
         let socket = self.listen_config.into_socket().await?;
-        let (recv, sender) = listen_handler(socket);
+        let socket = Arc::new(socket);
         let remote_session = RemoteSession::new(
             self.remote_host,
             self.domain,
@@ -138,7 +139,13 @@ impl Config {
             self.retries,
             self.post,
         );
-        let context = Context::new(cache, cache_fallback, timeout, remote_session, sender);
-        Ok((recv, context))
+        let context = Context::new(
+            cache,
+            cache_fallback,
+            timeout,
+            remote_session,
+            socket.clone(),
+        );
+        Ok((socket.clone(), context))
     }
 }

@@ -1,23 +1,25 @@
 use crate::context::Context;
 use crate::{Cache, DohError, DohResult};
 use bytes::Bytes;
-use dns_message_parser::{Dns, Question};
-use futures::channel::mpsc::UnboundedSender;
+use dns_message_parser::question::Question;
+use dns_message_parser::Dns;
 use futures::lock::Mutex;
 use std::future::Future;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::net::UdpSocket;
 use tokio::time::timeout as create_timeout;
 
-fn send_response(
+async fn send_response(
     dns_response: &mut Dns,
     id: u16,
     addr: SocketAddr,
-    sender: &UnboundedSender<(Bytes, SocketAddr)>,
+    sender: Arc<UdpSocket>,
 ) -> DohResult<()> {
     dns_response.id = id;
-    let bytes = dns_response.to_bytes()?;
-    sender.unbounded_send((bytes, addr))?;
+    let bytes = dns_response.encode()?;
+    sender.send_to(bytes.as_ref(), addr).await?;
     Ok(())
 }
 
@@ -45,10 +47,11 @@ async fn get_response_from_cache<'a>(
 
             if let Some(dns_response) = entry {
                 let id = dns_request.id;
-                let sender = &context.sender;
+                let sender = context.sender.clone();
                 let addr = *addr;
                 debug!("Question is found in cache");
-                CacheReturn::Found(send_response(dns_response, id, addr, sender))
+                let result = send_response(dns_response, id, addr, sender).await;
+                CacheReturn::Found(result)
             } else {
                 debug!("Question is not found in cache");
                 CacheReturn::NotFound(Some((cache, question.clone())))
@@ -78,8 +81,8 @@ async fn get_response(
     match create_timeout(timeout, response_future).await {
         Ok(Ok((mut dns_response, duration))) => {
             let addr = *addr;
-            let sender = &context.sender;
-            let result = send_response(&mut dns_response, id, addr, sender);
+            let sender = context.sender.clone();
+            let result = send_response(&mut dns_response, id, addr, sender).await;
             if let Some(duration) = duration {
                 if let Some((cache, question)) = cache_question {
                     let mut guard_cache = cache.lock().await;
@@ -137,9 +140,10 @@ async fn get_response_from_cache_fallback<'a>(
             let mut guard_cache = cache.lock().await;
             if let Some(dns_response) = guard_cache.get_expired_fallback(question) {
                 let id = dns_request.id;
-                let sender = &context.sender;
+                let sender = context.sender.clone();
                 debug!("Question is found in cache fallback");
-                Some(send_response(dns_response, id, addr, sender))
+                let result = send_response(dns_response, id, addr, sender).await;
+                Some(result)
             } else {
                 debug!("Question is not found in cache fallback");
                 None
@@ -159,7 +163,7 @@ pub async fn request_handler(
     addr: SocketAddr,
     context: &'static Context,
 ) -> DohResult<()> {
-    let mut dns_request = Dns::decode(&msg)?;
+    let mut dns_request = Dns::decode(msg)?;
     if dns_request.is_response() {
         return Err(DohError::DnsNotRequest(dns_request));
     }

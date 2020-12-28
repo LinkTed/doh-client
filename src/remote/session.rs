@@ -1,7 +1,7 @@
 use super::{response_handler, Config, Connection, Host};
 use crate::{DohError, DohResult};
 use base64::{encode_config, URL_SAFE_NO_PAD};
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use dns_message_parser::Dns;
 use http::Request;
 use rustls::ClientConfig;
@@ -35,30 +35,29 @@ impl Session {
 
     async fn connect(&mut self) -> DohResult<()> {
         if self.connection.is_connected() {
-            Ok(())
-        } else {
-            let config = &self.config;
-            let client_config = &config.client_config;
-            let domain = &config.domain.as_str();
-            for i in 0..config.retries {
-                info!("Try to connect to {}: {}", self.connection, i + 1);
-                match self.connection.connect(client_config, domain).await {
-                    Ok(_) => {
-                        info!("Connected to {} via {}", domain, self.connection);
-                        self.connection_id += 1;
-                        return Ok(());
-                    }
-                    Err(e) => {
-                        error!(
-                            "Could not connect to {} via {}: {}",
-                            domain, self.connection, e
-                        );
-                    }
+            return Ok(());
+        }
+        let config = &self.config;
+        let client_config = &config.client_config;
+        let domain = &config.domain.as_str();
+        for i in 0..config.retries {
+            info!("Try to connect to {}: {}", self.connection, i + 1);
+            match self.connection.connect(client_config, domain).await {
+                Ok(_) => {
+                    info!("Connected to {} via {}", domain, self.connection);
+                    self.connection_id += 1;
+                    return Ok(());
+                }
+                Err(e) => {
+                    error!(
+                        "Could not connect to {} via {}: {}",
+                        domain, self.connection, e
+                    );
                 }
             }
-            let remote_addrs = self.connection.get_remote_addrs();
-            Err(DohError::CouldNotConnect(remote_addrs))
         }
+        let remote_addrs = self.connection.get_remote_addrs();
+        Err(DohError::CouldNotConnect(remote_addrs))
     }
 
     pub(crate) fn disconnect(&mut self, connection_id: u32) {
@@ -118,10 +117,9 @@ impl Session {
         u32,
     )> {
         self.connect().await?;
-        let mut bytes = BytesMut::new();
         let id = dns_request.id;
         dns_request.id = 0;
-        dns_request.encode(&mut bytes)?;
+        let bytes = dns_request.encode()?;
         debug!("Send DNS request to server: {}", dns_request);
         let data = bytes.freeze();
         dns_request.id = id;
