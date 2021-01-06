@@ -1,9 +1,6 @@
 mod config;
 use config::Config;
 
-mod connection;
-use connection::Connection;
-
 mod helper;
 #[cfg(feature = "socks5")]
 use helper::socks5_connect;

@@ -1,8 +1,9 @@
-use super::{response_handler, Config, Connection, Host};
+use super::{response_handler, Config, Host};
 use crate::{DohError, DohResult};
 use base64::{encode_config, URL_SAFE_NO_PAD};
 use bytes::Bytes;
 use dns_message_parser::Dns;
+use h2::client::SendRequest;
 use http::Request;
 use rustls::ClientConfig;
 use std::future::Future;
@@ -11,8 +12,9 @@ use std::time::Duration;
 
 pub(crate) struct Session {
     config: Config,
-    connection: Connection,
+    host: Host,
     connection_id: u32,
+    send_request: Option<SendRequest<Bytes>>,
 }
 
 impl Session {
@@ -25,45 +27,43 @@ impl Session {
         post: bool,
     ) -> Session {
         let config = Config::new(domain, client_config, uri, retries, post);
-        let connection = host.into_connection();
         Session {
             config,
-            connection,
+            host,
             connection_id: 0,
+            send_request: None,
         }
     }
 
     async fn connect(&mut self) -> DohResult<()> {
-        if self.connection.is_connected() {
+        if self.send_request.is_some() {
             return Ok(());
         }
         let config = &self.config;
         let client_config = &config.client_config;
         let domain = &config.domain.as_str();
         for i in 0..config.retries {
-            info!("Try to connect to {}: {}", self.connection, i + 1);
-            match self.connection.connect(client_config, domain).await {
-                Ok(_) => {
-                    info!("Connected to {} via {}", domain, self.connection);
-                    self.connection_id += 1;
+            info!("Try to connect to {}: {}", self.host, i + 1);
+            match self.host.connect(client_config, domain).await {
+                Ok(send_request) => {
+                    info!("Connected to {} via {}", domain, self.host);
+                    self.send_request.replace(send_request);
+                    self.connection_id = self.connection_id.wrapping_add(1);
                     return Ok(());
                 }
                 Err(e) => {
-                    error!(
-                        "Could not connect to {} via {}: {}",
-                        domain, self.connection, e
-                    );
+                    error!("Could not connect to {} via {}: {}", domain, self.host, e);
                 }
             }
         }
-        let remote_addrs = self.connection.get_remote_addrs();
+        let remote_addrs = self.host.get_remote_addrs();
         Err(DohError::CouldNotConnect(remote_addrs))
     }
 
     pub(crate) fn disconnect(&mut self, connection_id: u32) {
         if self.connection_id == connection_id {
             debug!("Disconnect connetion to server");
-            self.connection.disconnect();
+            self.send_request.take();
         }
     }
 
@@ -100,13 +100,19 @@ impl Session {
                 .unwrap()
         };
 
+        self.connect().await?;
+
         debug!("Send HTTP2 request to server: {:?}", request);
-        let (response, mut request) = self.connection.send_request(request).await?;
-        if post {
-            debug!("Send HTTP2 body: {:?}", data);
-            request.send_data(data, true)?;
+        if let Some(send_request) = self.send_request.as_mut() {
+            let (response, mut request) = send_request.send_request(request, false)?;
+            if post {
+                debug!("Send HTTP2 body: {:?}", data);
+                request.send_data(data, true)?;
+            }
+            Ok((response_handler(response), self.connection_id))
+        } else {
+            Err(DohError::IsNotConnected)
         }
-        Ok((response_handler(response), self.connection_id))
     }
 
     pub(crate) async fn start_request(
@@ -127,7 +133,7 @@ impl Session {
         match self.send_request(data).await {
             Ok(r) => Ok(r),
             Err(e) => {
-                self.connection.disconnect();
+                self.send_request.take();
                 Err(e)
             }
         }
