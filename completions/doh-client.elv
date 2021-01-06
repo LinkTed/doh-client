@@ -31,6 +31,7 @@ If the size is 0 then the private HTTP cache is not used (ignores cache-control)
             cand --cache-size 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
             cand --socks5 'Socks5 proxy URL
+CAUTION: If a domain name is used instead of an IP address the system resolver will be used to resolve the IP address of the proxy. If the `doh-client` is configured as system resolver, then it will NOT WORK. It is recommended to always use an IP address for the socks proxy.
 (example: socks5://user:password@example.com or socks5h://example.com)'
             cand --listen-activation 'Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS'
             cand -g 'Use the GET method for the HTTP/2.0 request'

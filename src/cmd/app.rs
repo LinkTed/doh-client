@@ -8,9 +8,9 @@ pub fn get_app() -> App<'static, 'static> {
         .author(crate_authors!())
         .about(
             "Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
-        By default, the client will connect to the Cloudflare DNS service.\n\
-        This binary uses the env_logger as logger implementations. \
-        See https://github.com/sebasmagri/env_logger/",
+            By default, the client will connect to the Cloudflare DNS service.\n\
+            This binary uses the env_logger as logger implementations. \
+            See https://github.com/sebasmagri/env_logger/",
         )
         .arg(
             Arg::with_name("listen-addr")
@@ -27,7 +27,7 @@ pub fn get_app() -> App<'static, 'static> {
                 .long("listen-activation")
                 .help(
                     "Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() \
-                under Mac OS",
+                    under Mac OS",
                 )
                 .required(false),
         )
@@ -39,7 +39,7 @@ pub fn get_app() -> App<'static, 'static> {
                 .value_name("Addr/Name")
                 .help(
                     "Remote address/hostname to the DOH server \
-                (If a hostname is used then another DNS server has to be configured)",
+                    (If a hostname is used then another DNS server has to be configured)",
                 )
                 .default_value("1.1.1.1:443")
                 .required(false),
@@ -71,7 +71,7 @@ pub fn get_app() -> App<'static, 'static> {
                 .value_name("UNSIGNED LONG")
                 .help(
                     "The time in seconds after that the connection would be closed if no response \
-                is received from the server",
+                    is received from the server",
                 )
                 .default_value("2")
                 .required(false),
@@ -101,7 +101,8 @@ pub fn get_app() -> App<'static, 'static> {
                 .value_name("UNSIGNED LONG")
                 .help(
                     "The size of the private HTTP cache\n\
-                If the size is 0 then the private HTTP cache is not used (ignores cache-control)",
+                    If the size is 0 then the private HTTP cache is not used \
+                    (ignores cache-control)",
                 )
                 .default_value("1024")
                 .required(false),
@@ -143,7 +144,11 @@ pub fn get_app() -> App<'static, 'static> {
             .value_name("URL")
             .help(
                 "Socks5 proxy URL\n\
-                    (example: socks5://user:password@example.com or socks5h://example.com)",
+                CAUTION: If a domain name is used instead of an IP address the system resolver \
+                will be used to resolve the IP address of the proxy. If the `doh-client` is \
+                configured as system resolver, then it will NOT WORK. It is recommended to always \
+                use an IP address for the socks proxy.\n\
+                (example: socks5://user:password@example.com or socks5h://example.com)",
             )
             .required(false),
     );

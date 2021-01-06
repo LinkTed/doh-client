@@ -116,13 +116,13 @@ trusted CA certificates.
 ```
 $ ./doh-client --help
 DNS over HTTPS client 2.2.0
-link.ted@mailbox.org
+LinkTed <link.ted@mailbox.org>
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
 This binary uses the env_logger as logger implementations. See https://github.com/sebasmagri/env_logger/
 
 USAGE:
-    doh-client [FLAGS] [OPTIONS] <CAFILE>
+    doh-client [FLAGS] [OPTIONS] [CAFILE]
 
 FLAGS:
         --cache-fallback       Use expired cache entries if no response is received from the server
@@ -142,12 +142,17 @@ OPTIONS:
                                         DNS server has to be configured) [default: 1.1.1.1:443]
         --retries <UNSIGNED INT>        The number of retries to connect to the remote server [default: 3]
         --socks5 <URL>                  Socks5 proxy URL
+                                        CAUTION: If a domain name is used instead of an IP address the system resolver
+                                        will be used to resolve the IP address of the proxy. If the `doh-client` is
+                                        configured as system resolver, then it will NOT WORK. It is recommended to
+                                        always use an IP address for the socks proxy.
                                         (example: socks5://user:password@example.com or socks5h://example.com)
     -t, --timeout <UNSIGNED LONG>       The time in seconds after that the connection would be closed if no response is
                                         received from the server [default: 2]
 
 ARGS:
     <CAFILE>    The path to the pem file, which contains the trusted CA certificates
+                If no path is given then the platform's native certificate store will be used
 ```
 
 ## Cache performance
