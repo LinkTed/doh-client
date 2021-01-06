@@ -207,3 +207,9 @@ How long is a DNS request and response in the cache?
    `control-cache: max-age=100` then the DNS request and response is in the cache for 100 seconds. After 100 seconds, 
    the client will forward the request to the server again.
 2. If `control-cache: max-age=XXX` is not present then the smallest TTL in the answer, authority and additional section of the DNS response is used.
+
+## License
+This project is licensed under the [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) license.
+
+### Contribution
+Any contribution intentionally submitted for inclusion in `doh-client` by you, shall be licensed as [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause), without any additional terms or conditions.
