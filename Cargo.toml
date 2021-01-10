@@ -7,14 +7,14 @@ license = "BSD-3-Clause"
 description = "DNS over HTTPS client"
 readme = "README.md"
 keywords = ["doh", "dns", "http2", "h2"]
-exclude = [
-    ".travis.yml",
-    ".gitignore",
-    "com.doh-client.daemon.plist",
-    "doh-client.service",
-    "doh-client.socket",
-    "usr.bin.doh-client",
-    "PKGBUILD"
+include = [
+    "src/**/*.rs",
+    "tests/*.rs",
+    "examples/*.rs", 
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "LICENSE",
     ]
 repository = "https://github.com/LinkTed/doh-client"
 categories = [
