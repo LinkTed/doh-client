@@ -1,4 +1,6 @@
 use crate::{DohError, DohResult};
+#[cfg(feature = "http-proxy")]
+use async_http_proxy::{http_connect_tokio, http_connect_tokio_with_basic_auth, HttpError};
 use bytes::Bytes;
 use h2::client::{handshake, SendRequest};
 use rustls::ClientConfig;
@@ -16,7 +18,7 @@ use tokio_socks::tcp::Socks5Stream;
 use tokio_socks::TargetAddr;
 use webpki::DNSNameRef;
 
-pub(super) async fn http2_connect<T>(connection: T) -> DohResult<SendRequest<Bytes>>
+pub(super) async fn try_http2_connect<T>(connection: T) -> DohResult<SendRequest<Bytes>>
 where
     T: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -44,58 +46,89 @@ where
         .await
 }
 
-async fn try_tcp_connect(remote_addr: &SocketAddr) -> IoResult<TcpStream> {
-    let tcp_connection = TcpStream::connect(remote_addr).await?;
+pub(super) async fn try_tcp_connect(host: &str, port: u16) -> DohResult<TcpStream> {
+    let tcp_connection = TcpStream::connect(&(host, port)).await?;
     tcp_connection.set_nodelay(true)?;
     Ok(tcp_connection)
 }
 
-pub(super) async fn tcp_connect(remote_addrs: &[SocketAddr]) -> DohResult<TcpStream> {
-    for remote_addr in remote_addrs {
-        match try_tcp_connect(remote_addr).await {
-            Ok(tcp_connection) => return Ok(tcp_connection),
-            Err(e) => {
-                error!("Could not connectio to {}: {}", remote_addr, e);
-            }
-        };
-    }
-    Err(DohError::CouldNotConnect(Vec::from(remote_addrs)))
-}
 #[cfg(feature = "socks5")]
-async fn try_socks5_connect(
-    remote_addr: &SocketAddr,
+async fn socks5_connect(
+    host: &str,
+    port: u16,
     dest_addr: &TargetAddr<'static>,
     credentials: &Option<(String, String)>,
 ) -> DohResult<TcpStream> {
     let dest_addr = dest_addr.to_owned();
     let socks5_connection = if let Some((username, password)) = credentials {
-        Socks5Stream::connect_with_password(remote_addr, dest_addr, username, password).await
+        Socks5Stream::connect_with_password((host, port), dest_addr, username, password).await
     } else {
-        Socks5Stream::connect(remote_addr, dest_addr).await
+        Socks5Stream::connect((host, port), dest_addr).await
     }?;
     let tcp_connection = socks5_connection.into_inner();
     tcp_connection.set_nodelay(true)?;
     Ok(tcp_connection)
 }
+
 #[cfg(feature = "socks5")]
-pub(super) async fn socks5_connect(
+pub(super) async fn try_socks5_connect(
+    proxy_host: &str,
+    proxy_port: u16,
     remote_addrs: &[SocketAddr],
-    dest_addrs: &[TargetAddr<'static>],
     credentials: &Option<(String, String)>,
 ) -> DohResult<TcpStream> {
     for remote_addr in remote_addrs {
-        for dest_addr in dest_addrs {
-            let tcp_connection = try_socks5_connect(remote_addr, dest_addr, credentials).await;
-            match tcp_connection {
-                Ok(tcp_connection) => return Ok(tcp_connection),
-                Err(e) => {
-                    error!(
-                        "Could not connect to {:?} via socks5 proxy {}: {}",
-                        dest_addr, remote_addr, e
-                    );
-                }
+        let target_addr = TargetAddr::Ip(*remote_addr);
+        let tcp_connection =
+            socks5_connect(proxy_host, proxy_port, &target_addr, credentials).await;
+        match tcp_connection {
+            Ok(tcp_connection) => return Ok(tcp_connection),
+            Err(e) => {
+                error!(
+                    "Could not connect to {:?} via socks5 proxy {}:{}  {}",
+                    remote_addr, proxy_host, proxy_port, e
+                );
             }
         }
     }
-    Err(DohError::CouldNotConnect(Vec::from(remote_addrs)))
+    Err(DohError::CouldNotConnect(proxy_host.to_owned(), proxy_port))
+}
+
+#[cfg(feature = "socks5")]
+pub(super) async fn try_socks5h_connect(
+    proxy_host: &str,
+    proxy_port: u16,
+    remote_host: &str,
+    remote_port: u16,
+    credentials: &Option<(String, String)>,
+) -> DohResult<TcpStream> {
+    use std::borrow::Cow;
+
+    let target_addr = TargetAddr::Domain(Cow::Owned(remote_host.to_owned()), remote_port);
+    socks5_connect(proxy_host, proxy_port, &target_addr, credentials).await
+}
+
+#[cfg(feature = "http-proxy")]
+pub(super) async fn try_http_proxy_connect<T>(
+    connection: &mut T,
+    remote_host: &str,
+    remote_port: u16,
+    credentials: &Option<(String, String)>,
+) -> Result<(), HttpError>
+where
+    T: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    match credentials {
+        Some((username, password)) => {
+            http_connect_tokio_with_basic_auth(
+                connection,
+                remote_host,
+                remote_port,
+                username,
+                password,
+            )
+            .await
+        }
+        None => http_connect_tokio(connection, remote_host, remote_port).await,
+    }
 }

@@ -1,4 +1,6 @@
 use crate::cmd::RemoteHostError;
+#[cfg(feature = "http-proxy")]
+use async_http_proxy::HttpError as HttpProxyError;
 use bytes::Bytes;
 use dns_message_parser::{DecodeError, Dns, EncodeError};
 use futures::channel::mpsc::TrySendError;
@@ -23,6 +25,9 @@ pub enum Error {
     #[error("Could not send to the response handler: {0}")]
     TrySendError(#[from] TrySendError<(Bytes, SocketAddr)>),
     #[cfg(feature = "socks5")]
+    #[error("HTTP Proxy Error: {0}")]
+    HttpProxyError(#[from] HttpProxyError),
+    #[cfg(feature = "socks5")]
     #[error("Socks Error: {0}")]
     SocksError(#[from] SocksError),
     #[error("doh-client is not connected")]
@@ -31,8 +36,10 @@ pub enum Error {
     PEMParser,
     #[error("Cache size is zero and cache fallback is enabled simultaneously")]
     CacheSize,
-    #[error("Could not connect to any address: {0:?}")]
-    CouldNotConnect(Vec<SocketAddr>),
+    #[error("Could not connect to DoH server")]
+    CouldNotConnectServer,
+    #[error("Could not connect to address: {0}:{1}")]
+    CouldNotConnect(String, u16),
     #[error("Could not get response for: {0:?}")]
     CouldNotGetResponse(Dns),
     #[error("Header status: got {0}")]

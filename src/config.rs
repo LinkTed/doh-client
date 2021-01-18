@@ -1,13 +1,11 @@
 use crate::context::Context;
+use crate::helper::load_root_store;
 use crate::listen::Config as ListenConfig;
 use crate::remote::{Host as RemoteHost, Session as RemoteSession};
 use crate::{get_listen_config, get_remote_host, Cache, DohError, DohResult};
-use cfg_if::cfg_if;
 use clap::{value_t, ArgMatches};
 use futures::lock::Mutex;
-use rustls::{ClientConfig, RootCertStore};
-use std::fs::File;
-use std::io::BufReader;
+use rustls::ClientConfig;
 use std::io::Result as IoResult;
 use std::sync::Arc;
 use tokio::net::UdpSocket;
@@ -18,31 +16,6 @@ fn create_client_config(cafile: Option<&str>) -> DohResult<ClientConfig> {
     config.root_store = root_store;
     config.alpn_protocols.push(vec![104, 50]); // h2
     Ok(config)
-}
-
-fn load_root_store(cafile: Option<&str>) -> DohResult<RootCertStore> {
-    if let Some(cafile) = cafile {
-        let certfile = File::open(&cafile)?;
-        let mut root_store = RootCertStore::empty();
-        if root_store
-            .add_pem_file(&mut BufReader::new(certfile))
-            .is_err()
-        {
-            return Err(DohError::PEMParser);
-        }
-        Ok(root_store)
-    } else {
-        cfg_if! {
-            if #[cfg(feature = "native-certs")] {
-                match rustls_native_certs::load_native_certs() {
-                    Ok(root_store) => Ok(root_store),
-                    Err((_, e)) => Err(e.into()),
-                }
-            } else {
-                panic!("feature native-certs is not enabled")
-            }
-        }
-    }
 }
 
 /// The configuration object for the `doh-client`.

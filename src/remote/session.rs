@@ -46,18 +46,17 @@ impl Session {
             info!("Try to connect to {}: {}", self.host, i + 1);
             match self.host.connect(client_config, domain).await {
                 Ok(send_request) => {
-                    info!("Connected to {} via {}", domain, self.host);
+                    info!("Connected to {} at {}", domain, self.host);
                     self.send_request.replace(send_request);
                     self.connection_id = self.connection_id.wrapping_add(1);
                     return Ok(());
                 }
                 Err(e) => {
-                    error!("Could not connect to {} via {}: {}", domain, self.host, e);
+                    error!("Could not connect to {} at {}: {}", domain, self.host, e);
                 }
             }
         }
-        let remote_addrs = self.host.get_remote_addrs();
-        Err(DohError::CouldNotConnect(remote_addrs))
+        Err(DohError::CouldNotConnectServer)
     }
 
     pub(crate) fn disconnect(&mut self, connection_id: u32) {

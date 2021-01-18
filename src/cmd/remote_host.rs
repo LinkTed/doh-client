@@ -1,194 +1,201 @@
+#[cfg(feature = "http-proxy")]
+use crate::helper::load_root_store;
 use crate::RemoteHost;
+use cfg_if::cfg_if;
 use clap::ArgMatches;
-#[cfg(feature = "socks5")]
-use std::borrow::Cow;
+#[cfg(feature = "http-proxy")]
+use rustls::ClientConfig;
 use std::io::Error as IoError;
-use std::net::SocketAddr;
 #[cfg(feature = "socks5")]
-use std::net::{IpAddr, SocketAddrV4, SocketAddrV6};
+use std::net::{IpAddr, SocketAddr};
+#[cfg(feature = "http-proxy")]
+use std::sync::Arc;
 use thiserror::Error as ThisError;
 use tokio::net::lookup_host;
-#[cfg(feature = "socks5")]
-use tokio_socks::TargetAddr;
-#[cfg(feature = "socks5")]
-use url::{Host, ParseError, Url};
 
 #[derive(Debug, ThisError)]
 pub enum RemoteHostError {
-    #[cfg(feature = "socks5")]
-    #[error("Could not parse socks5 URL: {0}")]
-    ParseError(#[from] ParseError),
-    #[cfg(feature = "socks5")]
-    #[error("Could not parse socks5 scheme: {0}")]
-    Socks5Scheme(String),
+    #[cfg(any(feature = "socks5", feature = "http-proxy"))]
+    #[error("Could not parse proxy scheme: {0}")]
+    ProxyScheme(String),
+    #[cfg(any(feature = "socks5", feature = "http-proxy"))]
+    #[error("Could not parse proxy credentials: {0}")]
+    ProxyCredentials(String),
     #[error("IO Error: {0}")]
     IoError(#[from] IoError),
     #[error("Unknown port: {0}")]
     UnknownPort(String),
-    #[error("Unknown host: {0}")]
-    UnknownHost(String),
+    #[error("Unknown hostm and port: {0}")]
+    UnknownHostPort(String),
 }
 
-#[cfg(feature = "socks5")]
-fn get_socks5_url(arg_matches: &ArgMatches) -> Result<Option<Url>, ParseError> {
-    if let Some(socks5) = arg_matches.value_of("socks5") {
-        let url = Url::parse(&socks5)?;
-        return Ok(Some(url));
+fn parse_host_port<'a>(host_port: &'a str) -> Result<(&'a str, u16), RemoteHostError> {
+    let host_port_vec: Vec<&str> = host_port.rsplitn(2, ':').collect();
+    if host_port_vec.len() != 2 {
+        return Err(RemoteHostError::UnknownHostPort(host_port.to_owned()));
     }
-
-    Ok(None)
-}
-#[cfg(feature = "socks5")]
-async fn get_socks5_remote_addrs(url: &Url) -> Result<Vec<SocketAddr>, RemoteHostError> {
-    if let Some(host) = url.host() {
-        match host {
-            Host::Domain(domain) => {
-                if let Some(port) = url.port_or_known_default() {
-                    let host = format!("{}:{}", host, port);
-                    let remote_addrs = lookup_host(host).await?;
-                    let remote_addrs = remote_addrs.collect();
-                    Ok(remote_addrs)
-                } else {
-                    Err(RemoteHostError::UnknownPort(domain.to_string()))
-                }
-            }
-            Host::Ipv4(ipv4_addr) => {
-                if let Some(port) = url.port_or_known_default() {
-                    let remote_addr = SocketAddr::V4(SocketAddrV4::new(ipv4_addr, port));
-                    let remote_addrs = vec![remote_addr];
-                    Ok(remote_addrs)
-                } else {
-                    Err(RemoteHostError::UnknownPort(ipv4_addr.to_string()))
-                }
-            }
-            Host::Ipv6(ipv6_addr) => {
-                if let Some(port) = url.port_or_known_default() {
-                    let remote_addr = SocketAddr::V6(SocketAddrV6::new(ipv6_addr, port, 0, 0));
-                    let remote_addrs = vec![remote_addr];
-                    Ok(remote_addrs)
-                } else {
-                    Err(RemoteHostError::UnknownPort(ipv6_addr.to_string()))
-                }
-            }
-        }
+    let host = host_port_vec[1];
+    if let Ok(port) = host_port_vec[0].parse() {
+        Ok((host, port))
     } else {
-        Err(RemoteHostError::UnknownHost(url.to_string()))
+        Err(RemoteHostError::UnknownPort(host.to_owned()))
     }
 }
-#[cfg(feature = "socks5")]
-fn get_resolve(url: &Url) -> Result<bool, RemoteHostError> {
-    match url.scheme() {
-        "socks5" => Ok(true),
-        "socks5h" => Ok(false),
-        scheme => Err(RemoteHostError::Socks5Scheme(scheme.to_string())),
-    }
-}
-#[cfg(feature = "socks5")]
-async fn get_dest_addrs(
+
+fn get_remote_host_port(
     arg_matches: &ArgMatches<'static>,
-    url: &Url,
-) -> Result<Vec<TargetAddr<'static>>, RemoteHostError> {
-    let remote_host = String::from(arg_matches.value_of("remote-host").unwrap());
+) -> Result<(String, u16), RemoteHostError> {
+    let remote_host_port = arg_matches.value_of("remote-host").unwrap();
+    let (remote_host, remote_port) = parse_host_port(remote_host_port)?;
+    Ok((remote_host.to_owned(), remote_port))
+}
 
-    let dest_addr: Vec<&str> = remote_host.rsplitn(2, ':').collect();
-    if dest_addr.len() != 2 {
-        return Err(RemoteHostError::UnknownHost(remote_host));
-    }
-    let host = dest_addr[1];
-    let port = if let Ok(port) = dest_addr[0].parse() {
-        port
-    } else {
-        return Err(RemoteHostError::UnknownPort(remote_host));
-    };
+fn get_direct(arg_matches: &ArgMatches<'static>) -> Result<RemoteHost, RemoteHostError> {
+    let (remote_host, remote_port) = get_remote_host_port(arg_matches)?;
+    let remote_host = RemoteHost::Direct(remote_host, remote_port);
+    Ok(remote_host)
+}
 
+#[cfg(any(feature = "socks5", feature = "http-proxy"))]
+async fn get_proxy_host_port(
+    arg_matches: &ArgMatches<'static>,
+) -> Result<(String, u16), RemoteHostError> {
+    let proxy_host_port = arg_matches.value_of("proxy-host").unwrap();
+    let (proxy_host, proxy_port) = parse_host_port(proxy_host_port)?;
+    Ok((proxy_host.to_owned(), proxy_port))
+}
+
+#[cfg(feature = "socks5")]
+async fn get_proxy_remote_addrs(
+    arg_matches: &ArgMatches<'static>,
+) -> Result<Vec<SocketAddr>, RemoteHostError> {
+    let remote_host = arg_matches.value_of("remote-host").unwrap();
+    let (host, port) = parse_host_port(remote_host)?;
     match host.parse::<IpAddr>() {
-        Ok(dest_addr) => {
-            let dest_addr = SocketAddr::new(dest_addr, port);
-            let dest_addrs = vec![TargetAddr::Ip(dest_addr)];
-            Ok(dest_addrs)
+        Ok(host) => {
+            let remote_addrs = vec![SocketAddr::new(host, port)];
+            Ok(remote_addrs)
         }
         Err(_) => {
-            let resolve = get_resolve(url)?;
-            if resolve {
-                let dest_addrs = lookup_host(&remote_host).await?;
-                let dest_addrs = dest_addrs.map(TargetAddr::Ip).collect();
-                Ok(dest_addrs)
-            } else {
-                let dest_addr = TargetAddr::Domain(Cow::Owned(host.to_string()), port);
-                let dest_addrs = vec![dest_addr];
-                Ok(dest_addrs)
-            }
+            let remote_addrs = lookup_host(remote_host).await?;
+            let remote_addrs = remote_addrs.collect();
+            Ok(remote_addrs)
         }
     }
 }
-#[cfg(feature = "socks5")]
-fn get_credentials(url: &Url) -> Option<(String, String)> {
-    let username = url.username();
-    let password = url.password();
 
-    if username.is_empty() {
-        None
-    } else if let Some(password) = password {
-        Some((username.to_string(), password.to_string()))
-    } else {
-        None
-    }
-}
-#[cfg(feature = "socks5")]
-async fn get_socks5(
+#[cfg(any(feature = "socks5", feature = "http-proxy"))]
+fn get_proxy_credentials(
     arg_matches: &ArgMatches<'static>,
-) -> Result<
-    Option<(
-        Vec<SocketAddr>,
-        Option<(String, String)>,
-        Vec<TargetAddr<'static>>,
-    )>,
-    RemoteHostError,
-> {
-    let url = get_socks5_url(arg_matches)?;
-    if let Some(url) = url {
-        let remote_addrs = get_socks5_remote_addrs(&url).await?;
-        let credentials = get_credentials(&url);
-        let dest_addrs = get_dest_addrs(arg_matches, &url).await?;
-        Ok(Some((remote_addrs, credentials, dest_addrs)))
+) -> Result<Option<(String, String)>, RemoteHostError> {
+    if let Some(proxy_credentials) = arg_matches.value_of("proxy-credentials") {
+        let proxy_credentials_vec: Vec<&str> = proxy_credentials.splitn(2, ':').collect();
+        if proxy_credentials_vec.len() == 2 {
+            let username = proxy_credentials_vec[0].to_owned();
+            let password = proxy_credentials_vec[1].to_owned();
+            Ok(Some((username, password)))
+        } else {
+            Err(RemoteHostError::ProxyCredentials(
+                proxy_credentials.to_owned(),
+            ))
+        }
     } else {
         Ok(None)
     }
 }
 
-async fn get_remote_addrs(
+#[cfg(feature = "http-proxy")]
+fn get_proxy_https_client_config(
     arg_matches: &ArgMatches<'static>,
-) -> Result<Vec<SocketAddr>, RemoteHostError> {
-    let remote_host = String::from(arg_matches.value_of("remote-host").unwrap());
+) -> Result<ClientConfig, RemoteHostError> {
+    let https_cafile = arg_matches.value_of("proxy-https-cafile");
+    let root_store = load_root_store(https_cafile)?;
+    let mut config = ClientConfig::new();
+    config.root_store = root_store;
+    config
+        .alpn_protocols
+        .push(vec![0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31]); // http/1.1
+    Ok(config)
+}
 
-    match remote_host.parse() {
-        Ok(addr) => Ok(vec![addr]),
-        Err(_) => {
-            let addr = lookup_host(remote_host).await?;
-            Ok(addr.collect())
+#[cfg(feature = "http-proxy")]
+fn get_proxy_https_domain(arg_matches: &ArgMatches<'static>) -> String {
+    arg_matches
+        .value_of("proxy-https-domain")
+        .unwrap()
+        .to_owned()
+}
+
+#[cfg(any(feature = "socks5", feature = "http-proxy"))]
+async fn get_proxy(arg_matches: &ArgMatches<'static>) -> Result<RemoteHost, RemoteHostError> {
+    let proxy_scheme = arg_matches.value_of("proxy-scheme");
+    if let Some(proxy_scheme) = proxy_scheme {
+        let (proxy_host, proxy_port) = get_proxy_host_port(arg_matches).await?;
+        let credentials = get_proxy_credentials(arg_matches)?;
+        match proxy_scheme {
+            #[cfg(feature = "socks5")]
+            "socks5" => {
+                let remote_addrs = get_proxy_remote_addrs(arg_matches).await?;
+                Ok(RemoteHost::Socks5(
+                    proxy_host,
+                    proxy_port,
+                    credentials,
+                    remote_addrs,
+                ))
+            }
+            #[cfg(feature = "socks5")]
+            "socks5h" => {
+                let (remote_host, remote_port) = get_remote_host_port(arg_matches)?;
+                Ok(RemoteHost::Socks5h(
+                    proxy_host,
+                    proxy_port,
+                    credentials,
+                    remote_host,
+                    remote_port,
+                ))
+            }
+            #[cfg(feature = "http-proxy")]
+            "http" => {
+                let (remote_host, remote_port) = get_remote_host_port(arg_matches)?;
+                Ok(RemoteHost::HttpProxy(
+                    proxy_host,
+                    proxy_port,
+                    credentials,
+                    remote_host,
+                    remote_port,
+                ))
+            }
+            #[cfg(feature = "http-proxy")]
+            "https" => {
+                let (remote_host, remote_port) = get_remote_host_port(arg_matches)?;
+                let https_client_config = get_proxy_https_client_config(arg_matches)?;
+                let https_client_config = Arc::new(https_client_config);
+                let https_domain = get_proxy_https_domain(arg_matches);
+                Ok(RemoteHost::HttpsProxy(
+                    proxy_host,
+                    proxy_port,
+                    credentials,
+                    remote_host,
+                    remote_port,
+                    https_client_config,
+                    https_domain,
+                ))
+            }
+            scheme => Err(RemoteHostError::ProxyScheme(scheme.to_string())),
         }
+    } else {
+        get_direct(arg_matches)
     }
 }
 
 pub async fn get_remote_host(
     arg_matches: &ArgMatches<'static>,
 ) -> Result<RemoteHost, RemoteHostError> {
-    #[cfg(feature = "socks5")]
-    match get_socks5(arg_matches).await? {
-        Some((remote_addrs, credentials, dest_addrs)) => {
-            let remote_host = RemoteHost::Socks5(remote_addrs, credentials, dest_addrs);
-            Ok(remote_host)
+    cfg_if! {
+        if #[cfg(any(feature = "socks5", feature = "http-proxy"))] {
+            get_proxy(arg_matches).await
+        } else {
+            get_direct(arg_matches)
         }
-        None => {
-            let remote_addrs = get_remote_addrs(arg_matches).await?;
-            let remote_host = RemoteHost::Direct(remote_addrs);
-            Ok(remote_host)
-        }
-    }
-    #[cfg(not(feature = "socks5"))]
-    {
-        let remote_addrs = get_remote_addrs(arg_matches).await?;
-        let remote_host = RemoteHost::Direct(remote_addrs);
-        Ok(remote_host)
     }
 }

@@ -3,15 +3,22 @@ use clap::{crate_authors, crate_description, crate_version, App, Arg};
 
 /// Get the `clap::App` object for the argument parsing.
 pub fn get_app() -> App<'static, 'static> {
+    let about =
+        "Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
+        By default, the client will connect to the Cloudflare DNS service.\n\
+        This binary uses the env_logger as logger implementations. \
+        See https://github.com/sebasmagri/env_logger/";
+    let after_help =
+        "CAUTION: If a domain name is used for a <Addr/Domain:Port> value instead of an IP address \
+        the system resolver will be used to resolve the IP address of the domain name. If the \
+        `doh-client` is configured as system resolver, then it will NOT WORK. It is recommended to \
+        always use an IP address for <Addr/Domain:Port> values.\n";
+
     let app = App::new(crate_description!())
         .version(crate_version!())
         .author(crate_authors!())
-        .about(
-            "Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
-            By default, the client will connect to the Cloudflare DNS service.\n\
-            This binary uses the env_logger as logger implementations. \
-            See https://github.com/sebasmagri/env_logger/",
-        )
+        .about(about)
+        .after_help(after_help)
         .arg(
             Arg::with_name("listen-addr")
                 .short("l")
@@ -36,11 +43,8 @@ pub fn get_app() -> App<'static, 'static> {
                 .short("r")
                 .long("remote-host")
                 .takes_value(true)
-                .value_name("Addr/Name")
-                .help(
-                    "Remote address/hostname to the DOH server \
-                    (If a hostname is used then another DNS server has to be configured)",
-                )
+                .value_name("Addr/Domain:Port")
+                .help("Remote address/domain to the DOH server\nsee below")
                 .default_value("1.1.1.1:443")
                 .required(false),
         )
@@ -114,43 +118,97 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         );
 
+    let arg = Arg::with_name("cafile")
+        .takes_value(true)
+        .value_name("CAFILE");
     cfg_if! {
         if #[cfg(feature = "native-certs")] {
-            let app = app.arg(
-                Arg::with_name("cafile")
-                    .takes_value(true)
-                    .value_name("CAFILE")
-                    .help("The path to the pem file, which contains the trusted CA certificates\n\
-                        If no path is given then the platform's native certificate store will be \
-                        used")
-                    .required(false),
-            );
+            let arg = arg
+                .help("The path to the pem file, which contains the trusted CA certificates\n\
+                      If no path is given then the platform's native certificate store will be \
+                      used")
+                .required(false);
         } else {
-            let app = app.arg(
-                Arg::with_name("cafile")
-                    .takes_value(true)
-                    .value_name("CAFILE")
-                    .help("The path to the pem file, which contains the trusted CA certificates")
-                    .required(true),
-            );
+            let arg = arg
+                .help("The path to the pem file, which contains the trusted CA certificates")
+                .required(true);
         }
     }
+    let app = app.arg(arg);
 
-    #[cfg(feature = "socks5")]
-    let app = app.arg(
-        Arg::with_name("socks5")
-            .long("socks5")
-            .takes_value(true)
-            .value_name("URL")
-            .help(
-                "Socks5 proxy URL\n\
-                CAUTION: If a domain name is used instead of an IP address the system resolver \
-                will be used to resolve the IP address of the proxy. If the `doh-client` is \
-                configured as system resolver, then it will NOT WORK. It is recommended to always \
-                use an IP address for the socks proxy.\n\
-                (example: socks5://user:password@example.com or socks5h://example.com)",
+    #[cfg(any(feature = "socks5", feature = "http-proxy"))]
+    let app = {
+        cfg_if! {
+            if #[cfg(all(feature = "socks5", feature = "http-proxy"))] {
+                let proxy_host_help = "Socks5 or HTTP CONNECT proxy host\nsee below";
+                let proxy_scheme_possible_values = ["socks5", "socks5h", "http", "https"];
+            } else if #[cfg(all(feature = "socks5", not(feature = "http-proxy")))] {
+                let proxy_host_help = "Socks5 proxy host\nsee below";
+                let proxy_scheme_possible_values = ["socks5", "socks5h"];
+            } else {
+                let proxy_host_help = "HTTP CONNECT proxy host\nsee below";
+                let proxy_scheme_possible_values = ["http", "https"];
+            }
+        }
+
+        #[cfg(feature = "http-proxy")]
+        let app = {
+            let arg = Arg::with_name("proxy-https-cafile")
+                .takes_value(true)
+                .value_name("CAFILE")
+                .long("proxy-https-cafile")
+                .takes_value(true);
+            cfg_if! {
+                if #[cfg(feature = "native-certs")] {
+                    let arg = arg
+                        .help("The path to the pem file, which contains the trusted CA \
+                              certificates for the https proxy\n\
+                              If no path is given then the platform's native certificate store \
+                              will be used")
+                        .required(false);
+                } else {
+                    let arg = arg
+                        .help("The path to the pem file, which contains the trusted CA \
+                              certificates for the https proxy")
+                        .required_if("proxy-scheme", "https")
+                }
+            }
+            app.arg(arg).arg(
+                Arg::with_name("proxy-https-domain")
+                    .takes_value(true)
+                    .value_name("Domain")
+                    .long("proxy-https-domain")
+                    .help("The domain name of the https proxy")
+                    .required_if("proxy-scheme", "https"),
             )
-            .required(false),
-    );
+        };
+
+        app.arg(
+            Arg::with_name("proxy-host")
+                .long("proxy-host")
+                .takes_value(true)
+                .value_name("Addr/Domain:Port")
+                .help(proxy_host_help)
+                .required(false)
+                .requires("proxy-scheme"),
+        )
+        .arg(
+            Arg::with_name("proxy-scheme")
+                .long("proxy-scheme")
+                .takes_value(true)
+                .possible_values(&proxy_scheme_possible_values[..])
+                .help("The protocol of the proxy")
+                .required(false)
+                .requires("proxy-host"),
+        )
+        .arg(
+            Arg::with_name("proxy-credentials")
+                .long("proxy-credentials")
+                .takes_value(true)
+                .value_name("Username:Password")
+                .help("The credentials for the proxy")
+                .requires_all(&["proxy-host", "proxy-scheme"][..]),
+        )
+    };
     app
 }
