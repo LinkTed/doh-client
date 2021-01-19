@@ -68,7 +68,7 @@ fn windows_service_doh_client(arguments: Vec<OsString>) {
     let app = get_app();
     let matches = app.get_matches_from(arguments);
 
-    let mut runtime = Runtime::new().unwrap();
+    let runtime = Runtime::new().unwrap();
     let config = runtime.block_on(Config::try_from(matches)).unwrap();
 
     let status_handle = register("doh-client", windows_service_event_handler).unwrap();

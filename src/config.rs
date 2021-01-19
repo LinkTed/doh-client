@@ -118,6 +118,6 @@ impl Config {
             remote_session,
             socket.clone(),
         );
-        Ok((socket.clone(), context))
+        Ok((socket, context))
     }
 }

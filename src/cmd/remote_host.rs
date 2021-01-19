@@ -29,7 +29,7 @@ pub enum RemoteHostError {
     UnknownHostPort(String),
 }
 
-fn parse_host_port<'a>(host_port: &'a str) -> Result<(&'a str, u16), RemoteHostError> {
+fn parse_host_port(host_port: &str) -> Result<(&str, u16), RemoteHostError> {
     let host_port_vec: Vec<&str> = host_port.rsplitn(2, ':').collect();
     if host_port_vec.len() != 2 {
         return Err(RemoteHostError::UnknownHostPort(host_port.to_owned()));
