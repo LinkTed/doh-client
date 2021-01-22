@@ -24,7 +24,7 @@ pub enum Error {
     EncodeError(EncodeError),
     #[error("Could not send to the response handler: {0}")]
     TrySendError(#[from] TrySendError<(Bytes, SocketAddr)>),
-    #[cfg(feature = "socks5")]
+    #[cfg(feature = "http-proxy")]
     #[error("HTTP Proxy Error: {0}")]
     HttpProxyError(#[from] HttpProxyError),
     #[cfg(feature = "socks5")]
