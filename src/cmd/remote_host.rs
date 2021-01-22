@@ -11,7 +11,6 @@ use std::net::{IpAddr, SocketAddr};
 #[cfg(feature = "http-proxy")]
 use std::sync::Arc;
 use thiserror::Error as ThisError;
-use tokio::net::lookup_host;
 
 #[derive(Debug, ThisError)]
 pub enum RemoteHostError {
@@ -77,7 +76,7 @@ async fn get_proxy_remote_addrs(
             Ok(remote_addrs)
         }
         Err(_) => {
-            let remote_addrs = lookup_host(remote_host).await?;
+            let remote_addrs = tokio::net::lookup_host(remote_host).await?;
             let remote_addrs = remote_addrs.collect();
             Ok(remote_addrs)
         }

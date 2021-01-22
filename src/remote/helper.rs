@@ -1,11 +1,10 @@
-use crate::{DohError, DohResult};
+use crate::DohResult;
 #[cfg(feature = "http-proxy")]
 use async_http_proxy::{http_connect_tokio, http_connect_tokio_with_basic_auth, HttpError};
 use bytes::Bytes;
 use h2::client::{handshake, SendRequest};
 use rustls::ClientConfig;
 use std::io::Result as IoResult;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
@@ -74,7 +73,7 @@ async fn socks5_connect(
 pub(super) async fn try_socks5_connect(
     proxy_host: &str,
     proxy_port: u16,
-    remote_addrs: &[SocketAddr],
+    remote_addrs: &[std::net::SocketAddr],
     credentials: &Option<(String, String)>,
 ) -> DohResult<TcpStream> {
     for remote_addr in remote_addrs {
@@ -91,7 +90,10 @@ pub(super) async fn try_socks5_connect(
             }
         }
     }
-    Err(DohError::CouldNotConnect(proxy_host.to_owned(), proxy_port))
+    Err(crate::DohError::CouldNotConnect(
+        proxy_host.to_owned(),
+        proxy_port,
+    ))
 }
 
 #[cfg(feature = "socks5")]

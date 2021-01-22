@@ -8,14 +8,17 @@ use bytes::Bytes;
 use h2::client::SendRequest;
 use rustls::ClientConfig;
 use std::fmt::{Display, Formatter, Result};
-use std::net::SocketAddr;
-#[cfg(feature = "http-proxy")]
 use std::sync::Arc;
 
 pub enum Host {
     Direct(String, u16),
     #[cfg(feature = "socks5")]
-    Socks5(String, u16, Option<(String, String)>, Vec<SocketAddr>),
+    Socks5(
+        String,
+        u16,
+        Option<(String, String)>,
+        Vec<std::net::SocketAddr>,
+    ),
     #[cfg(feature = "socks5")]
     Socks5h(String, u16, Option<(String, String)>, String, u16),
     #[cfg(feature = "http-proxy")]
