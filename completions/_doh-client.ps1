@@ -22,8 +22,8 @@ Register-ArgumentCompleter -Native -CommandName 'doh-client' -ScriptBlock {
         'doh-client' {
             [CompletionResult]::new('-l', 'l', [CompletionResultType]::ParameterName, 'Listen address [default: 127.0.0.1:53]')
             [CompletionResult]::new('--listen-addr', 'listen-addr', [CompletionResultType]::ParameterName, 'Listen address [default: 127.0.0.1:53]')
-            [CompletionResult]::new('-r', 'r', [CompletionResultType]::ParameterName, 'Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)')
-            [CompletionResult]::new('--remote-host', 'remote-host', [CompletionResultType]::ParameterName, 'Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)')
+            [CompletionResult]::new('-r', 'r', [CompletionResultType]::ParameterName, 'Remote address/domain to the DOH server (see below)')
+            [CompletionResult]::new('--remote-host', 'remote-host', [CompletionResultType]::ParameterName, 'Remote address/domain to the DOH server (see below)')
             [CompletionResult]::new('-d', 'd', [CompletionResultType]::ParameterName, 'The domain name of the remote server')
             [CompletionResult]::new('--domain', 'domain', [CompletionResultType]::ParameterName, 'The domain name of the remote server')
             [CompletionResult]::new('--retries', 'retries', [CompletionResultType]::ParameterName, 'The number of retries to connect to the remote server')
@@ -35,9 +35,12 @@ Register-ArgumentCompleter -Native -CommandName 'doh-client' -ScriptBlock {
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)')
             [CompletionResult]::new('--cache-size', 'cache-size', [CompletionResultType]::ParameterName, 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)')
-            [CompletionResult]::new('--socks5', 'socks5', [CompletionResultType]::ParameterName, 'Socks5 proxy URL
-CAUTION: If a domain name is used instead of an IP address the system resolver will be used to resolve the IP address of the proxy. If the `doh-client` is configured as system resolver, then it will NOT WORK. It is recommended to always use an IP address for the socks proxy.
-(example: socks5://user:password@example.com or socks5h://example.com)')
+            [CompletionResult]::new('--proxy-host', 'proxy-host', [CompletionResultType]::ParameterName, 'Socks5 or HTTP CONNECT proxy host (see below)')
+            [CompletionResult]::new('--proxy-scheme', 'proxy-scheme', [CompletionResultType]::ParameterName, 'The protocol of the proxy')
+            [CompletionResult]::new('--proxy-credentials', 'proxy-credentials', [CompletionResultType]::ParameterName, 'The credentials for the proxy')
+            [CompletionResult]::new('--proxy-https-cafile', 'proxy-https-cafile', [CompletionResultType]::ParameterName, 'The path to the pem file, which contains the trusted CA certificates for the https proxy
+If no path is given then the platform''s native certificate store will be used')
+            [CompletionResult]::new('--proxy-https-domain', 'proxy-https-domain', [CompletionResultType]::ParameterName, 'The domain name of the https proxy')
             [CompletionResult]::new('--listen-activation', 'listen-activation', [CompletionResultType]::ParameterName, 'Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS')
             [CompletionResult]::new('-g', 'g', [CompletionResultType]::ParameterName, 'Use the GET method for the HTTP/2.0 request')
             [CompletionResult]::new('--get', 'get', [CompletionResultType]::ParameterName, 'Use the GET method for the HTTP/2.0 request')

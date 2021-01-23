@@ -115,11 +115,12 @@ This example will connect to the Cloudflare DNS service.
 trusted CA certificates.
 ```
 $ ./doh-client --help
-DNS over HTTPS client 2.2.0
+DNS over HTTPS client 3.0.0
 LinkTed <link.ted@mailbox.org>
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
-This binary uses the env_logger as logger implementations. See https://github.com/sebasmagri/env_logger/
+This binary uses the env_logger as logger implementations.
+See https://github.com/sebasmagri/env_logger/
 
 USAGE:
     doh-client [FLAGS] [OPTIONS] [CAFILE]
@@ -132,27 +133,36 @@ FLAGS:
     -V, --version              Prints version information
 
 OPTIONS:
-    -c, --cache-size <UNSIGNED LONG>    The size of the private HTTP cache
-                                        If the size is 0 then the private HTTP cache is not used (ignores cache-control)
-                                        [default: 1024]
-    -d, --domain <Domain>               The domain name of the remote server [default: cloudflare-dns.com]
-    -l, --listen-addr <Addr>            Listen address [default: 127.0.0.1:53]
-    -p, --path <STRING>                 The path of the URI [default: dns-query]
-    -r, --remote-host <Addr/Name>       Remote address/hostname to the DOH server (If a hostname is used then another
-                                        DNS server has to be configured) [default: 1.1.1.1:443]
-        --retries <UNSIGNED INT>        The number of retries to connect to the remote server [default: 3]
-        --socks5 <URL>                  Socks5 proxy URL
-                                        CAUTION: If a domain name is used instead of an IP address the system resolver
-                                        will be used to resolve the IP address of the proxy. If the `doh-client` is
-                                        configured as system resolver, then it will NOT WORK. It is recommended to
-                                        always use an IP address for the socks proxy.
-                                        (example: socks5://user:password@example.com or socks5h://example.com)
-    -t, --timeout <UNSIGNED LONG>       The time in seconds after that the connection would be closed if no response is
-                                        received from the server [default: 2]
+    -c, --cache-size <UNSIGNED LONG>
+            The size of the private HTTP cache
+            If the size is 0 then the private HTTP cache is not used (ignores cache-control) [default: 1024]
+    -d, --domain <Domain>                          The domain name of the remote server [default: cloudflare-dns.com]
+    -l, --listen-addr <Addr>                       Listen address [default: 127.0.0.1:53]
+    -p, --path <STRING>                            The path of the URI [default: dns-query]
+        --proxy-credentials <Username:Password>    The credentials for the proxy
+        --proxy-host <Addr/Domain:Port>            Socks5 or HTTP CONNECT proxy host (see below)
+        --proxy-https-cafile <CAFILE>
+            The path to the pem file, which contains the trusted CA certificates for the https proxy
+            If no path is given then the platform's native certificate store will be used
+        --proxy-https-domain <Domain>              The domain name of the https proxy
+        --proxy-scheme <proxy-scheme>
+            The protocol of the proxy [possible values: socks5, socks5h, http, https]
+
+    -r, --remote-host <Addr/Domain:Port>
+            Remote address/domain to the DOH server (see below) [default: 1.1.1.1:443]
+
+        --retries <UNSIGNED INT>                   The number of retries to connect to the remote server [default: 3]
+    -t, --timeout <UNSIGNED LONG>
+            The time in seconds after that the connection would be closed if no response is received from the server
+            [default: 2]
 
 ARGS:
     <CAFILE>    The path to the pem file, which contains the trusted CA certificates
                 If no path is given then the platform's native certificate store will be used
+
+CAUTION: If a domain name is used for a <Addr/Domain:Port> value instead of an IP address the system resolver will be
+used to resolve the IP address of the domain name. If the `doh-client` is configured as system resolver, then it will
+NOT WORK. It is recommended to always use an IP address for <Addr/Domain:Port> values.
 ```
 
 ## Cache performance

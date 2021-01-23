@@ -17,8 +17,8 @@ edit:completion:arg-completer[doh-client] = [@words]{
         &'doh-client'= {
             cand -l 'Listen address [default: 127.0.0.1:53]'
             cand --listen-addr 'Listen address [default: 127.0.0.1:53]'
-            cand -r 'Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)'
-            cand --remote-host 'Remote address/hostname to the DOH server (If a hostname is used then another DNS server has to be configured)'
+            cand -r 'Remote address/domain to the DOH server (see below)'
+            cand --remote-host 'Remote address/domain to the DOH server (see below)'
             cand -d 'The domain name of the remote server'
             cand --domain 'The domain name of the remote server'
             cand --retries 'The number of retries to connect to the remote server'
@@ -30,9 +30,12 @@ edit:completion:arg-completer[doh-client] = [@words]{
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
             cand --cache-size 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
-            cand --socks5 'Socks5 proxy URL
-CAUTION: If a domain name is used instead of an IP address the system resolver will be used to resolve the IP address of the proxy. If the `doh-client` is configured as system resolver, then it will NOT WORK. It is recommended to always use an IP address for the socks proxy.
-(example: socks5://user:password@example.com or socks5h://example.com)'
+            cand --proxy-host 'Socks5 or HTTP CONNECT proxy host (see below)'
+            cand --proxy-scheme 'The protocol of the proxy'
+            cand --proxy-credentials 'The credentials for the proxy'
+            cand --proxy-https-cafile 'The path to the pem file, which contains the trusted CA certificates for the https proxy
+If no path is given then the platform''s native certificate store will be used'
+            cand --proxy-https-domain 'The domain name of the https proxy'
             cand --listen-activation 'Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS'
             cand -g 'Use the GET method for the HTTP/2.0 request'
             cand --get 'Use the GET method for the HTTP/2.0 request'

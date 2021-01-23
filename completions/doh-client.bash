@@ -20,7 +20,7 @@ _doh-client() {
 
     case "${cmd}" in
         doh-client)
-            opts=" -g -h -V -l -r -d -t -p -c  --listen-activation --get --cache-fallback --help --version --listen-addr --remote-host --domain --retries --timeout --path --cache-size --socks5  <CAFILE> "
+            opts=" -g -h -V -l -r -d -t -p -c  --listen-activation --get --cache-fallback --help --version --listen-addr --remote-host --domain --retries --timeout --path --cache-size --proxy-host --proxy-scheme --proxy-credentials --proxy-https-cafile --proxy-https-domain  <CAFILE> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -79,7 +79,23 @@ _doh-client() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --socks5)
+                --proxy-host)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --proxy-scheme)
+                    COMPREPLY=($(compgen -W "socks5 socks5h http https" -- "${cur}"))
+                    return 0
+                    ;;
+                --proxy-credentials)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --proxy-https-cafile)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --proxy-https-domain)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
