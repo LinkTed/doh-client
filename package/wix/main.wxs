@@ -94,7 +94,7 @@
                         Start="auto"
                         Account="NT AUTHORITY\LocalService" 
                         ErrorControl="normal"
-                        Arguments="E:\DigiCert_Global_Root_CA.pem" 
+                        Arguments="--cache-size 0" 
                         Interactive="no" />
                       <ServiceControl 
                         Id="DohClientSerivceControl"
