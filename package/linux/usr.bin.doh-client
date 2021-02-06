@@ -31,7 +31,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # ------------------------------------------------------------------
-# vim: ft=apparmor
 
 #include <tunables/global>
 
@@ -53,3 +52,4 @@ profile doh-client /usr/bin/doh-client {
   /usr/local/share/ca-certificates/extracted/tls-ca-bundle.pem r,
   # --  END  -- Certs
 }
+# vim: filetype=apparmor ts=2 sw=2 et
