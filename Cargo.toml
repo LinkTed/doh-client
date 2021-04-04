@@ -30,26 +30,26 @@ native-certs = ["rustls-native-certs"]
 main-windows-service = ["windows-service", "winlog"]
 
 [dependencies]
-libc = "~0.2.82"
+libc = "~0.2.92"
 base64 = "~0.13.0"
-log = "~0.4.11"
-env_logger = "~0.8.2"
+log = "~0.4.14"
+env_logger = "~0.8.3"
 clap = "~2.33.3"
 tokio-rustls = "~0.22.0"
-futures = "~0.3.12"
-h2 = "~0.3.0"
+futures = "~0.3.13"
+h2 = "~0.3.2"
 http = "~0.2.3"
 rustls = "~0.19.0"
-webpki = "0.21.4"
+webpki = "~0.21.4"
 bytes = "~1.0.1"
-lru = "0.6.3"
-dns-message-parser = "~0.4.5"
+lru = "0.6.5"
+dns-message-parser = "~0.5.0"
 cfg-if = "~1.0.0"
-lazy_static = "~1.4"
-thiserror = "~1.0.22"
+lazy_static = "~1.4.0"
+thiserror = "~1.0.24"
 
 [dependencies.async-http-proxy]
-version = "~1.1.0"
+version = "~1.1.1"
 optional = true
 features = ["runtime-tokio", "basic-auth"]
 
@@ -58,7 +58,7 @@ version = "~0.5.1"
 optional = true
 
 [dependencies.tokio]
-version = "~1.0.2"
+version = "~1.4.0"
 features = ["rt-multi-thread", "net", "time", "macros"]
 
 [dependencies.rustls-native-certs]
