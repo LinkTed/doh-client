@@ -1,0 +1,31 @@
+name: Windows MSI package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  wix:
+    name: Job MSI doh-client
+    runs-on: windows-latest
+    steps:
+      - name: Install cargo wix
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-wix
+          version: latest
+      - uses: actions/checkout@v2
+      - run: move package\wix .
+      - name: Build Windows service
+        run: cargo build --bin windows-service --features="main-windows-service" --release
+      - name: Create MSI package
+        run: cargo wix
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          name: doh-client.msi
+          path: target\wix\doh-client-*.msi
