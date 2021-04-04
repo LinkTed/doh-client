@@ -177,7 +177,7 @@ dependencies = [
 
 [[package]]
 name = "doh-client"
-version = "3.0.1"
+version = "3.0.2"
 dependencies = [
  "async-http-proxy",
  "base64",
