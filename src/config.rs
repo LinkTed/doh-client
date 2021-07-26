@@ -12,8 +12,10 @@ use tokio::net::UdpSocket;
 
 fn create_client_config(cafile: Option<&str>) -> DohResult<ClientConfig> {
     let root_store = load_root_store(cafile)?;
-    let mut config = ClientConfig::new();
-    config.root_store = root_store;
+    let mut config = ClientConfig::builder()
+        .with_safe_defaults()
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
     config.alpn_protocols.push(vec![104, 50]); // h2
     Ok(config)
 }

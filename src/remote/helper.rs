@@ -4,6 +4,8 @@ use async_http_proxy::{http_connect_tokio, http_connect_tokio_with_basic_auth, H
 use bytes::Bytes;
 use h2::client::{handshake, SendRequest};
 use rustls::ClientConfig;
+use rustls::ServerName;
+use std::convert::TryFrom;
 use std::io::Result as IoResult;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -15,7 +17,6 @@ use tokio_rustls::TlsConnector;
 use tokio_socks::tcp::Socks5Stream;
 #[cfg(feature = "socks5")]
 use tokio_socks::TargetAddr;
-use webpki::DNSNameRef;
 
 pub(super) async fn try_http2_connect<T>(connection: T) -> DohResult<SendRequest<Bytes>>
 where
@@ -41,7 +42,7 @@ where
 {
     let tls_connector = TlsConnector::from(config.clone());
     tls_connector
-        .connect(DNSNameRef::try_from_ascii_str(domain).unwrap(), connection)
+        .connect(ServerName::try_from(domain).unwrap(), connection)
         .await
 }
 

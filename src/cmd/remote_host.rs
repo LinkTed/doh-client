@@ -108,8 +108,10 @@ fn get_proxy_https_client_config(
 ) -> Result<ClientConfig, RemoteHostError> {
     let https_cafile = arg_matches.value_of("proxy-https-cafile");
     let root_store = load_root_store(https_cafile)?;
-    let mut config = ClientConfig::new();
-    config.root_store = root_store;
+    let mut config = ClientConfig::builder()
+        .with_safe_defaults()
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
     config
         .alpn_protocols
         .push(vec![0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31]); // http/1.1
