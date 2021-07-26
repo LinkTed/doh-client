@@ -1,4 +1,3 @@
-use cfg_if::cfg_if;
 use rustls::RootCertStore;
 use std::fs::File;
 use std::io::{BufReader, Error as IoError, ErrorKind as IoErrorKind, Result as IoResult};
@@ -14,15 +13,13 @@ pub(super) fn load_root_store(cafile: Option<&str>) -> IoResult<RootCertStore> {
             Err(IoError::new(IoErrorKind::Other, "PEM parse"))
         }
     } else {
-        cfg_if! {
-            if #[cfg(feature = "native-certs")] {
-                match rustls_native_certs::load_native_certs() {
-                    Ok(root_store) => Ok(root_store),
-                    Err((_, e)) => Err(e),
-                }
-            } else {
-                panic!("feature native-certs is not enabled")
+        if cfg!(feature = "native-certs") {
+            match rustls_native_certs::load_native_certs() {
+                Ok(root_store) => Ok(root_store),
+                Err((_, e)) => Err(e),
             }
+        } else {
+            panic!("feature native-certs is not enabled")
         }
     }
 }

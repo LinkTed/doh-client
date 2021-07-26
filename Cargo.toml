@@ -44,7 +44,6 @@ webpki = "~0.21.4"
 bytes = "~1.0.1"
 lru = "0.6.5"
 dns-message-parser = "~0.5.0"
-cfg-if = "~1.0.0"
 lazy_static = "~1.4.0"
 thiserror = "~1.0.24"
 

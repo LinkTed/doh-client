@@ -182,7 +182,6 @@ dependencies = [
  "async-http-proxy",
  "base64",
  "bytes",
- "cfg-if",
  "clap",
  "dns-message-parser",
  "env_logger",

@@ -1,7 +1,6 @@
 #[cfg(feature = "http-proxy")]
 use crate::helper::load_root_store;
 use crate::RemoteHost;
-use cfg_if::cfg_if;
 use clap::ArgMatches;
 #[cfg(feature = "http-proxy")]
 use rustls::ClientConfig;
@@ -187,14 +186,20 @@ async fn get_proxy(arg_matches: &ArgMatches<'static>) -> Result<RemoteHost, Remo
     }
 }
 
+#[cfg(all(not(feature = "socks5"), not(feature = "http-proxy")))]
+async fn get_proxy(_: &ArgMatches<'static>) -> Result<RemoteHost, RemoteHostError> {
+    Err(RemoteHostError::IoError(IoError::new(
+        std::io::ErrorKind::Other,
+        "Feature native-certs is not enabled",
+    )))
+}
+
 pub async fn get_remote_host(
     arg_matches: &ArgMatches<'static>,
 ) -> Result<RemoteHost, RemoteHostError> {
-    cfg_if! {
-        if #[cfg(any(feature = "socks5", feature = "http-proxy"))] {
-            get_proxy(arg_matches).await
-        } else {
-            get_direct(arg_matches)
-        }
+    if cfg!(any(feature = "socks5", feature = "http-proxy")) {
+        get_proxy(arg_matches).await
+    } else {
+        get_direct(arg_matches)
     }
 }

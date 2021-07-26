@@ -1,5 +1,4 @@
 use super::activation_socket::get_activation_socket;
-use cfg_if::cfg_if;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::io::Result as IoResult;
 use std::net::SocketAddr;
@@ -28,14 +27,12 @@ impl Display for Config {
         match self {
             Config::Addr(socket_addr) => write!(f, "{}", socket_addr),
             Config::Activation => {
-                cfg_if! {
-                    if #[cfg(target_os = "macos")] {
-                        write!(f, "file descriptor of launch_activate_socket()")
-                    } else if #[cfg(target_family = "unix")] {
-                        write!(f, "file descriptor 3")
-                    } else {
-                        write!(f, "this is not supported on windows")
-                    }
+                if cfg!(target_os = "macos") {
+                    write!(f, "file descriptor of launch_activate_socket()")
+                } else if cfg!(target_family = "unix") {
+                    write!(f, "file descriptor 3")
+                } else {
+                    write!(f, "this is not supported on windows")
                 }
             }
         }

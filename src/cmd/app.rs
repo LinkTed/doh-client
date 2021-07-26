@@ -1,4 +1,3 @@
-use cfg_if::cfg_if;
 use clap::{crate_authors, crate_description, crate_version, App, Arg};
 
 const ABOUT: &str =
@@ -17,18 +16,20 @@ const AFTER_HELP: &str =
 fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
     use clap::ArgGroup;
 
-    cfg_if! {
-        if #[cfg(all(feature = "socks5", feature = "http-proxy"))] {
-            let proxy_host_help = "Socks5 or HTTP CONNECT proxy host (see below)";
-            let proxy_scheme_possible_values = ["socks5", "socks5h", "http", "https"];
-        } else if #[cfg(all(feature = "socks5", not(feature = "http-proxy")))] {
-            let proxy_host_help = "Socks5 proxy host (see below)";
-            let proxy_scheme_possible_values = ["socks5", "socks5h"];
+    let (proxy_host_help, proxy_scheme_possible_values) =
+        if cfg!(all(feature = "socks5", feature = "http-proxy")) {
+            (
+                "Socks5 or HTTP CONNECT proxy host (see below)",
+                &["socks5", "socks5h", "http", "https"][..],
+            )
+        } else if cfg!(all(feature = "socks5", not(feature = "http-proxy"))) {
+            ("Socks5 proxy host (see below)", &["socks5", "socks5h"][..])
         } else {
-            let proxy_host_help = "HTTP CONNECT proxy host (see below)";
-            let proxy_scheme_possible_values = ["http", "https"];
-        }
-    }
+            (
+                "HTTP CONNECT proxy host (see below)",
+                &["http", "https"][..],
+            )
+        };
 
     let app = app
         .arg(
@@ -44,7 +45,7 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
             Arg::with_name("proxy-scheme")
                 .long("proxy-scheme")
                 .takes_value(true)
-                .possible_values(&proxy_scheme_possible_values[..])
+                .possible_values(proxy_scheme_possible_values)
                 .help("The protocol of the proxy")
                 .required(false)
                 .requires("proxy-host"),
@@ -58,30 +59,29 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
                 .requires_all(&["proxy-host", "proxy-scheme"][..]),
         );
 
-    cfg_if! {
-        if #[cfg(feature = "http-proxy")] {
-            let arg = Arg::with_name("proxy-https-cafile")
-                .takes_value(true)
-                .value_name("CAFILE")
-                .long("proxy-https-cafile")
-                .takes_value(true);
-            cfg_if! {
-                if #[cfg(feature = "native-certs")] {
-                    let arg = arg
-                        .help("The path to the pem file, which contains the trusted CA \
-                              certificates for the https proxy\n\
-                              If no path is given then the platform's native certificate store \
-                              will be used")
-                        .required(false);
-                } else {
-                    let arg = arg
-                        .help("The path to the pem file, which contains the trusted CA \
-                              certificates for the https proxy")
-                        .required_if("proxy-scheme", "https")
-                }
-            }
-
-            app.arg(arg).arg(
+    if cfg!(feature = "http-proxy") {
+        let arg = Arg::with_name("proxy-https-cafile")
+            .takes_value(true)
+            .value_name("CAFILE")
+            .long("proxy-https-cafile")
+            .takes_value(true);
+        let arg = if cfg!(feature = "native-certs") {
+            arg.help(
+                "The path to the pem file, which contains the trusted CA \
+                      certificates for the https proxy\n\
+                      If no path is given then the platform's native certificate store \
+                      will be used",
+            )
+            .required(false)
+        } else {
+            arg.help(
+                "The path to the pem file, which contains the trusted CA \
+                      certificates for the https proxy",
+            )
+            .required_if("proxy-scheme", "https")
+        };
+        app.arg(arg)
+            .arg(
                 Arg::with_name("proxy-https-domain")
                     .takes_value(true)
                     .value_name("Domain")
@@ -89,17 +89,20 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
                     .help("The domain name of the https proxy")
                     .required_if("proxy-scheme", "https"),
             )
-            .group(
-                ArgGroup::with_name("proxy")
-                    .args(&["proxy-host", "proxy-scheme", "proxy-credentials",
-                            "proxy-https-domain", "proxy-https-cafile"][..])
-            )
-        } else {
-            app.group(
-                ArgGroup::with_name("proxy")
-                    .args(&["proxy-host", "proxy-scheme", "proxy-credentials"][..])
-            )
-        }
+            .group(ArgGroup::with_name("proxy").args(
+                &[
+                    "proxy-host",
+                    "proxy-scheme",
+                    "proxy-credentials",
+                    "proxy-https-domain",
+                    "proxy-https-cafile",
+                ][..],
+            ))
+    } else {
+        app.group(
+            ArgGroup::with_name("proxy")
+                .args(&["proxy-host", "proxy-scheme", "proxy-credentials"][..]),
+        )
     }
 }
 
@@ -107,19 +110,17 @@ fn cafile(app: App<'static, 'static>) -> App<'static, 'static> {
     let arg = Arg::with_name("cafile")
         .takes_value(true)
         .value_name("CAFILE");
-    cfg_if! {
-        if #[cfg(feature = "native-certs")] {
-            let arg = arg
-                .help("The path to the pem file, which contains the trusted CA certificates\n\
-                      If no path is given then the platform's native certificate store will be \
-                      used")
-                .required(false);
-        } else {
-            let arg = arg
-                .help("The path to the pem file, which contains the trusted CA certificates")
-                .required(true);
-        }
-    }
+    let arg = if cfg!(feature = "native-certs") {
+        arg.help(
+            "The path to the pem file, which contains the trusted CA certificates\n\
+                  If no path is given then the platform's native certificate store will be \
+                  used",
+        )
+        .required(false)
+    } else {
+        arg.help("The path to the pem file, which contains the trusted CA certificates")
+            .required(true)
+    };
     app.arg(arg)
 }
 
