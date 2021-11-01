@@ -30,6 +30,8 @@ _doh-client() {
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)]' \
 '--cache-size=[The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)]' \
+'--client-auth-certs=[The path to the pem file, which contains the certificates for the client authentication]' \
+'--client-auth-key=[The path to the pem file, which contains the key for the client authentication]' \
 '--proxy-host=[Socks5 or HTTP CONNECT proxy host (see below)]' \
 '--proxy-scheme=[The protocol of the proxy]: :(socks5 socks5h http https)' \
 '--proxy-credentials=[The credentials for the proxy]' \

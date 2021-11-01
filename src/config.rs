@@ -1,21 +1,31 @@
-use crate::context::Context;
-use crate::helper::load_root_store;
-use crate::listen::Config as ListenConfig;
-use crate::remote::{Host as RemoteHost, Session as RemoteSession};
-use crate::{get_listen_config, get_remote_host, Cache, DohError, DohResult};
+use crate::{
+    context::Context,
+    helper::{load_certs, load_private_key, load_root_store},
+    listen::Config as ListenConfig,
+    remote::{Host as RemoteHost, Session as RemoteSession},
+    {get_listen_config, get_remote_host, Cache, DohError, DohResult},
+};
 use clap::{value_t, ArgMatches};
 use futures::lock::Mutex;
 use rustls::ClientConfig;
-use std::io::Result as IoResult;
-use std::sync::Arc;
+use std::{io::Result as IoResult, sync::Arc};
 use tokio::net::UdpSocket;
 
-fn create_client_config(cafile: Option<&str>) -> DohResult<ClientConfig> {
+fn create_client_config(
+    cafile: Option<&str>,
+    client_auth: Option<(&str, &str)>,
+) -> DohResult<ClientConfig> {
     let root_store = load_root_store(cafile)?;
-    let mut config = ClientConfig::builder()
+    let config_builder = ClientConfig::builder()
         .with_safe_defaults()
-        .with_root_certificates(root_store)
-        .with_no_client_auth();
+        .with_root_certificates(root_store);
+    let mut config = if let Some((certs, key)) = client_auth {
+        let cert_chain = load_certs(certs)?;
+        let key_der = load_private_key(key)?;
+        config_builder.with_single_cert(cert_chain, key_der)?
+    } else {
+        config_builder.with_no_client_auth()
+    };
     config.alpn_protocols.push(vec![104, 50]); // h2
     Ok(config)
 }
@@ -41,6 +51,7 @@ impl Config {
         remote_host: RemoteHost,
         domain: &str,
         cafile: Option<&str>,
+        client_auth: Option<(&str, &str)>,
         path: &str,
         retries: u32,
         timeout: u64,
@@ -48,7 +59,7 @@ impl Config {
         cache_size: usize,
         cache_fallback: bool,
     ) -> DohResult<Config> {
-        let client_config = create_client_config(cafile)?;
+        let client_config = create_client_config(cafile, client_auth)?;
 
         let uri = format!("https://{}/{}", domain, path);
 
@@ -75,6 +86,11 @@ impl Config {
         let remote_host = get_remote_host(&matches).await?;
         let domain = matches.value_of("domain").unwrap();
         let cafile = matches.value_of("cafile");
+        let client_auth = if let Some(certs) = matches.value_of("client-auth-certs") {
+            Some((certs, matches.value_of("client-auth-key").unwrap()))
+        } else {
+            None
+        };
         let path = matches.value_of("path").unwrap();
         let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
         let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
@@ -86,6 +102,7 @@ impl Config {
             remote_host,
             domain,
             cafile,
+            client_auth,
             path,
             retries,
             timeout,

@@ -35,6 +35,8 @@ Register-ArgumentCompleter -Native -CommandName 'doh-client' -ScriptBlock {
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)')
             [CompletionResult]::new('--cache-size', 'cache-size', [CompletionResultType]::ParameterName, 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)')
+            [CompletionResult]::new('--client-auth-certs', 'client-auth-certs', [CompletionResultType]::ParameterName, 'The path to the pem file, which contains the certificates for the client authentication')
+            [CompletionResult]::new('--client-auth-key', 'client-auth-key', [CompletionResultType]::ParameterName, 'The path to the pem file, which contains the key for the client authentication')
             [CompletionResult]::new('--proxy-host', 'proxy-host', [CompletionResultType]::ParameterName, 'Socks5 or HTTP CONNECT proxy host (see below)')
             [CompletionResult]::new('--proxy-scheme', 'proxy-scheme', [CompletionResultType]::ParameterName, 'The protocol of the proxy')
             [CompletionResult]::new('--proxy-credentials', 'proxy-credentials', [CompletionResultType]::ParameterName, 'The credentials for the proxy')

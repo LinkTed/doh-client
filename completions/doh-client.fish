@@ -6,6 +6,8 @@ complete -c doh-client -n "__fish_use_subcommand" -s t -l timeout -d 'The time i
 complete -c doh-client -n "__fish_use_subcommand" -s p -l path -d 'The path of the URI'
 complete -c doh-client -n "__fish_use_subcommand" -s c -l cache-size -d 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
+complete -c doh-client -n "__fish_use_subcommand" -l client-auth-certs -d 'The path to the pem file, which contains the certificates for the client authentication'
+complete -c doh-client -n "__fish_use_subcommand" -l client-auth-key -d 'The path to the pem file, which contains the key for the client authentication'
 complete -c doh-client -n "__fish_use_subcommand" -l proxy-host -d 'Socks5 or HTTP CONNECT proxy host (see below)'
 complete -c doh-client -n "__fish_use_subcommand" -l proxy-scheme -d 'The protocol of the proxy' -r -f -a "socks5 socks5h http https"
 complete -c doh-client -n "__fish_use_subcommand" -l proxy-credentials -d 'The credentials for the proxy'

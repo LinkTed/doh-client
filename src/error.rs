@@ -6,8 +6,11 @@ use dns_message_parser::{DecodeError, Dns, EncodeError};
 use futures::channel::mpsc::TrySendError;
 use h2::Error as H2Error;
 use http::{HeaderValue, StatusCode};
-use std::io::Error as IoError;
-use std::net::{AddrParseError, SocketAddr};
+use rustls::Error as RustlsError;
+use std::{
+    io::Error as IoError,
+    net::{AddrParseError, SocketAddr},
+};
 use thiserror::Error as ThisError;
 #[cfg(feature = "socks5")]
 use tokio_socks::Error as SocksError;
@@ -34,6 +37,8 @@ pub enum Error {
     IsNotConnected,
     #[error("Cannot parse pem file")]
     PEMParser,
+    #[error("TLS error: {0}")]
+    Rustls(#[from] RustlsError),
     #[error("Cache size is zero and cache fallback is enabled simultaneously")]
     CacheSize,
     #[error("Could not connect to DoH server")]

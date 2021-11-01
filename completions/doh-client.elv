@@ -30,6 +30,8 @@ edit:completion:arg-completer[doh-client] = [@words]{
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
             cand --cache-size 'The size of the private HTTP cache
 If the size is 0 then the private HTTP cache is not used (ignores cache-control)'
+            cand --client-auth-certs 'The path to the pem file, which contains the certificates for the client authentication'
+            cand --client-auth-key 'The path to the pem file, which contains the key for the client authentication'
             cand --proxy-host 'Socks5 or HTTP CONNECT proxy host (see below)'
             cand --proxy-scheme 'The protocol of the proxy'
             cand --proxy-credentials 'The credentials for the proxy'

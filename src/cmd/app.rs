@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_description, crate_version, App, Arg};
+use clap::{crate_authors, crate_description, crate_version, App, Arg, ArgGroup};
 
 const ABOUT: &str =
     "Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
@@ -14,8 +14,6 @@ const AFTER_HELP: &str =
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
 fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
-    use clap::ArgGroup;
-
     let (proxy_host_help, proxy_scheme_possible_values) =
         if cfg!(all(feature = "socks5", feature = "http-proxy")) {
             (
@@ -228,6 +226,33 @@ pub fn get_app() -> App<'static, 'static> {
                 .long("cache-fallback")
                 .help("Use expired cache entries if no response is received from the server")
                 .required(false),
+        )
+        .arg(
+            Arg::with_name("client-auth-certs")
+                .long("client-auth-certs")
+                .takes_value(true)
+                .value_name("CERTSFILE")
+                .help(
+                    "The path to the pem file, which contains the certificates for the client \
+                      authentication",
+                )
+                .required(false)
+                .requires("client-auth-key"),
+        )
+        .arg(
+            Arg::with_name("client-auth-key")
+                .long("client-auth-key")
+                .takes_value(true)
+                .value_name("KEYFILE")
+                .help(
+                    "The path to the pem file, which contains the key for the client \
+                      authentication",
+                )
+                .required(false)
+                .requires("client-auth-certs"),
+        )
+        .group(
+            ArgGroup::with_name("client-auth").args(&["client-auth-certs", "client-auth-key"][..]),
         );
 
     let app = cafile(app);
