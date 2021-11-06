@@ -86,11 +86,9 @@ impl Config {
         let remote_host = get_remote_host(&matches).await?;
         let domain = matches.value_of("domain").unwrap();
         let cafile = matches.value_of("cafile");
-        let client_auth = if let Some(certs) = matches.value_of("client-auth-certs") {
-            Some((certs, matches.value_of("client-auth-key").unwrap()))
-        } else {
-            None
-        };
+        let client_auth = matches
+            .value_of("client-auth-certs")
+            .map(|certs| (certs, matches.value_of("client-auth-key").unwrap()));
         let path = matches.value_of("path").unwrap();
         let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
         let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);

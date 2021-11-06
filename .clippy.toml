@@ -1,2 +1,2 @@
 cognitive-complexity-threshold = 10 
-too-many-arguments-threshold = 10
+too-many-arguments-threshold = 12

@@ -20,7 +20,7 @@ pub enum RemoteHostError {
     #[error("Could not parse proxy credentials: {0}")]
     ProxyCredentials(String),
     #[error("IO Error: {0}")]
-    IoError(#[from] IoError),
+    Io(#[from] IoError),
     #[error("Unknown port: {0}")]
     UnknownPort(String),
     #[error("Unknown hostm and port: {0}")]
@@ -190,7 +190,7 @@ async fn get_proxy(arg_matches: &ArgMatches<'static>) -> Result<RemoteHost, Remo
 
 #[cfg(all(not(feature = "socks5"), not(feature = "http-proxy")))]
 async fn get_proxy(_: &ArgMatches<'static>) -> Result<RemoteHost, RemoteHostError> {
-    Err(RemoteHostError::IoError(IoError::new(
+    Err(RemoteHostError::Io(IoError::new(
         std::io::ErrorKind::Other,
         "Feature native-certs is not enabled",
     )))

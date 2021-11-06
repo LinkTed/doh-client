@@ -18,21 +18,21 @@ use tokio_socks::Error as SocksError;
 #[derive(Debug, ThisError)]
 pub enum Error {
     #[error("IO Error: {0}")]
-    IoError(#[from] IoError),
+    Io(#[from] IoError),
     #[error("H2 Error: {0}")]
-    H2Error(#[from] H2Error),
+    H2(#[from] H2Error),
     #[error("Decode Error: {0:?}")]
-    DecodeError(DecodeError),
+    Decode(#[from] DecodeError),
     #[error("Encode Error: {0:?}")]
-    EncodeError(EncodeError),
+    Encode(#[from] EncodeError),
     #[error("Could not send to the response handler: {0}")]
-    TrySendError(#[from] TrySendError<(Bytes, SocketAddr)>),
+    TrySend(#[from] TrySendError<(Bytes, SocketAddr)>),
     #[cfg(feature = "http-proxy")]
     #[error("HTTP Proxy Error: {0}")]
-    HttpProxyError(#[from] HttpProxyError),
+    HttpProxy(#[from] HttpProxyError),
     #[cfg(feature = "socks5")]
     #[error("Socks Error: {0}")]
-    SocksError(#[from] SocksError),
+    Socks(#[from] SocksError),
     #[error("doh-client is not connected")]
     IsNotConnected,
     #[error("Cannot parse pem file")]
@@ -58,21 +58,9 @@ pub enum Error {
     #[error("DNS packet is not a response: {0:?}")]
     DnsNotResponse(Dns),
     #[error("Could not get listen config: {0}")]
-    AddrParseError(#[from] AddrParseError),
+    AddrParse(#[from] AddrParseError),
     #[error("Remote Error: {0}")]
-    RemoteHostError(#[from] RemoteHostError),
-}
-
-impl From<DecodeError> for Error {
-    fn from(decode_error: DecodeError) -> Self {
-        Error::DecodeError(decode_error)
-    }
-}
-
-impl From<EncodeError> for Error {
-    fn from(encode_error: EncodeError) -> Self {
-        Error::EncodeError(encode_error)
-    }
+    RemoteHost(#[from] RemoteHostError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
