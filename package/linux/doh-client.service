@@ -48,11 +48,11 @@ SecureBits=no-cap-ambient-raise,no-cap-ambient-raise-locked
 
 # System Call Filtering
 ##
-SystemCallFilter=access arch_prctl bind brk clone close connect dup epoll_create1 epoll_ctl
-SystemCallFilter=epoll_wait eventfd2 execve futex getrandom getsockopt ioctl mmap mprotect
-SystemCallFilter=munmap newfstatat openat poll prctl pread64 prlimit64 read recvfrom rt_sigaction
-SystemCallFilter=rt_sigprocmask sched_getaffinity sched_yield sendto set_robust_list 
-SystemCallFilter=set_tid_address setsockopt shutdown sigaltstack socket statx write writev
+SystemCallFilter=access arch_prctl bind brk clone close connect epoll_create1 epoll_ctl epoll_wait
+SystemCallFilter=eventfd2 execve fcntl futex getrandom getsockopt ioctl mmap mprotect munmap
+SystemCallFilter=newfstatat openat poll prctl pread64 prlimit64 read recvfrom rt_sigaction
+SystemCallFilter=rt_sigprocmask sched_getaffinity sendto set_robust_list set_tid_address setsockopt
+SystemCallFilter=sigaltstack socket statx write writev
 ##
 SystemCallErrorNumber=EPERM
 
