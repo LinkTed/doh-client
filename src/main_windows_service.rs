@@ -1,4 +1,4 @@
-use doh_client::{get_app, run, Config};
+use doh_client::{get_command, run, Config};
 use lazy_static::lazy_static;
 use log::{error, info, set_max_level, LevelFilter};
 use std::ffi::OsString;
@@ -65,7 +65,7 @@ fn windows_service_event_handler(control_event: ServiceControl) -> ServiceContro
 
 fn windows_service_doh_client(arguments: Vec<OsString>) {
     info!("windows service is started");
-    let app = get_app();
+    let app = get_command();
     let matches = app.get_matches_from(arguments);
 
     let runtime = Runtime::new().unwrap();

@@ -1,4 +1,4 @@
-use doh_client::{get_app, run, Config};
+use doh_client::{get_command, run, Config};
 use env_logger::Builder;
 use log::error;
 
@@ -7,7 +7,7 @@ async fn main() {
     let mut builder = Builder::from_default_env();
     builder.format_timestamp(None).init();
 
-    let matches = get_app().get_matches();
+    let matches = get_command().get_matches();
     let config = Config::try_from(matches).await;
     match config {
         Ok(config) => {

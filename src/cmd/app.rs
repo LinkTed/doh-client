@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_description, crate_version, App, Arg, ArgGroup};
+use clap::{crate_authors, crate_description, crate_version, Arg, Command};
 
 const ABOUT: &str =
     "Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
@@ -13,7 +13,7 @@ const AFTER_HELP: &str =
     always use an IP address for <Addr/Domain:Port> values.\n";
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
-fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
+fn proxy_args(app: Command<'static>) -> Command<'static> {
     let (proxy_host_help, proxy_scheme_possible_values) =
         if cfg!(all(feature = "socks5", feature = "http-proxy")) {
             (
@@ -29,9 +29,9 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
             )
         };
 
-    let app = app
+    let command = app
         .arg(
-            Arg::with_name("proxy-host")
+            Arg::new("proxy-host")
                 .long("proxy-host")
                 .takes_value(true)
                 .value_name("Addr/Domain:Port")
@@ -40,7 +40,7 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
                 .requires("proxy-scheme"),
         )
         .arg(
-            Arg::with_name("proxy-scheme")
+            Arg::new("proxy-scheme")
                 .long("proxy-scheme")
                 .takes_value(true)
                 .possible_values(proxy_scheme_possible_values)
@@ -49,7 +49,7 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
                 .requires("proxy-host"),
         )
         .arg(
-            Arg::with_name("proxy-credentials")
+            Arg::new("proxy-credentials")
                 .long("proxy-credentials")
                 .takes_value(true)
                 .value_name("Username:Password")
@@ -58,7 +58,7 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
         );
 
     if cfg!(feature = "http-proxy") {
-        let arg = Arg::with_name("proxy-https-cafile")
+        let arg = Arg::new("proxy-https-cafile")
             .takes_value(true)
             .value_name("CAFILE")
             .long("proxy-https-cafile")
@@ -76,38 +76,23 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
                 "The path to the pem file, which contains the trusted CA \
                       certificates for the https proxy",
             )
-            .required_if("proxy-scheme", "https")
+            .required_if_eq("proxy-scheme", "https")
         };
-        app.arg(arg)
-            .arg(
-                Arg::with_name("proxy-https-domain")
-                    .takes_value(true)
-                    .value_name("Domain")
-                    .long("proxy-https-domain")
-                    .help("The domain name of the https proxy")
-                    .required_if("proxy-scheme", "https"),
-            )
-            .group(ArgGroup::with_name("proxy").args(
-                &[
-                    "proxy-host",
-                    "proxy-scheme",
-                    "proxy-credentials",
-                    "proxy-https-domain",
-                    "proxy-https-cafile",
-                ][..],
-            ))
-    } else {
-        app.group(
-            ArgGroup::with_name("proxy")
-                .args(&["proxy-host", "proxy-scheme", "proxy-credentials"][..]),
+        command.arg(arg).arg(
+            Arg::new("proxy-https-domain")
+                .takes_value(true)
+                .value_name("Domain")
+                .long("proxy-https-domain")
+                .help("The domain name of the https proxy")
+                .required_if_eq("proxy-scheme", "https"),
         )
+    } else {
+        command
     }
 }
 
-fn cafile(app: App<'static, 'static>) -> App<'static, 'static> {
-    let arg = Arg::with_name("cafile")
-        .takes_value(true)
-        .value_name("CAFILE");
+fn cafile(command: Command<'static>) -> Command<'static> {
+    let arg = Arg::new("cafile").takes_value(true).value_name("CAFILE");
     let arg = if cfg!(feature = "native-certs") {
         arg.help(
             "The path to the pem file, which contains the trusted CA certificates\n\
@@ -119,29 +104,30 @@ fn cafile(app: App<'static, 'static>) -> App<'static, 'static> {
         arg.help("The path to the pem file, which contains the trusted CA certificates")
             .required(true)
     };
-    app.arg(arg)
+    command.arg(arg)
 }
 
 /// Get the `clap::App` object for the argument parsing.
-pub fn get_app() -> App<'static, 'static> {
-    let app = App::new(crate_description!())
+pub fn get_command() -> Command<'static> {
+    let command = Command::new(crate_description!())
         .version(crate_version!())
         .author(crate_authors!())
         .about(ABOUT)
         .after_help(AFTER_HELP)
         .arg(
-            Arg::with_name("listen-addr")
-                .short("l")
+            Arg::new("listen-addr")
+                .short('l')
                 .long("listen-addr")
                 .conflicts_with("listen-activation")
                 .takes_value(true)
-                .value_name("Addr")
+                .value_name("Addr:Port")
                 .help("Listen address [default: 127.0.0.1:53]")
                 .required(false),
         )
         .arg(
-            Arg::with_name("listen-activation")
+            Arg::new("listen-activation")
                 .long("listen-activation")
+                .conflicts_with("listen-addr")
                 .help(
                     "Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() \
                     under Mac OS",
@@ -149,8 +135,8 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("remote-host")
-                .short("r")
+            Arg::new("remote-host")
+                .short('r')
                 .long("remote-host")
                 .takes_value(true)
                 .value_name("Addr/Domain:Port")
@@ -159,8 +145,8 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("domain")
-                .short("d")
+            Arg::new("domain")
+                .short('d')
                 .long("domain")
                 .takes_value(true)
                 .value_name("Domain")
@@ -169,7 +155,7 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("retries")
+            Arg::new("retries")
                 .takes_value(true)
                 .long("retries")
                 .value_name("UNSIGNED INT")
@@ -178,9 +164,9 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("timeout")
+            Arg::new("timeout")
                 .takes_value(true)
-                .short("t")
+                .short('t')
                 .long("timeout")
                 .value_name("UNSIGNED LONG")
                 .help(
@@ -191,8 +177,8 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("path")
-                .short("p")
+            Arg::new("path")
+                .short('p')
                 .long("path")
                 .takes_value(true)
                 .value_name("STRING")
@@ -201,16 +187,16 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("get")
-                .short("g")
+            Arg::new("get")
+                .short('g')
                 .long("get")
                 .help("Use the GET method for the HTTP/2.0 request")
                 .required(false),
         )
         .arg(
-            Arg::with_name("cache-size")
+            Arg::new("cache-size")
                 .long("cache-size")
-                .short("c")
+                .short('c')
                 .takes_value(true)
                 .value_name("UNSIGNED LONG")
                 .help(
@@ -222,13 +208,13 @@ pub fn get_app() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("cache-fallback")
+            Arg::new("cache-fallback")
                 .long("cache-fallback")
                 .help("Use expired cache entries if no response is received from the server")
                 .required(false),
         )
         .arg(
-            Arg::with_name("client-auth-certs")
+            Arg::new("client-auth-certs")
                 .long("client-auth-certs")
                 .takes_value(true)
                 .value_name("CERTSFILE")
@@ -240,7 +226,7 @@ pub fn get_app() -> App<'static, 'static> {
                 .requires("client-auth-key"),
         )
         .arg(
-            Arg::with_name("client-auth-key")
+            Arg::new("client-auth-key")
                 .long("client-auth-key")
                 .takes_value(true)
                 .value_name("KEYFILE")
@@ -250,15 +236,12 @@ pub fn get_app() -> App<'static, 'static> {
                 )
                 .required(false)
                 .requires("client-auth-certs"),
-        )
-        .group(
-            ArgGroup::with_name("client-auth").args(&["client-auth-certs", "client-auth-key"][..]),
         );
 
-    let app = cafile(app);
+    let command = cafile(command);
 
     #[cfg(any(feature = "socks5", feature = "http-proxy"))]
-    let app = proxy_args(app);
+    let command = proxy_args(command);
 
-    app
+    command
 }

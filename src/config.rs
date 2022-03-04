@@ -5,7 +5,7 @@ use crate::{
     remote::{Host as RemoteHost, Session as RemoteSession},
     {get_listen_config, get_remote_host, Cache, DohError, DohResult},
 };
-use clap::{value_t, ArgMatches};
+use clap::ArgMatches;
 use futures::lock::Mutex;
 use rustls::ClientConfig;
 use std::{io::Result as IoResult, sync::Arc};
@@ -81,7 +81,7 @@ impl Config {
         })
     }
 
-    pub async fn try_from(matches: ArgMatches<'static>) -> DohResult<Config> {
+    pub async fn try_from(matches: ArgMatches) -> DohResult<Config> {
         let listen_config = get_listen_config(&matches)?;
         let remote_host = get_remote_host(&matches).await?;
         let domain = matches.value_of("domain").unwrap();
@@ -90,10 +90,10 @@ impl Config {
             .value_of("client-auth-certs")
             .map(|certs| (certs, matches.value_of("client-auth-key").unwrap()));
         let path = matches.value_of("path").unwrap();
-        let retries: u32 = value_t!(matches, "retries", u32).unwrap_or(3);
-        let timeout: u64 = value_t!(matches, "timeout", u64).unwrap_or(2);
+        let retries: u32 = matches.value_of_t("retries").unwrap_or(3);
+        let timeout: u64 = matches.value_of_t("timeout").unwrap_or(2);
         let post: bool = !matches.is_present("get");
-        let cache_size: usize = value_t!(matches, "cache-size", usize).unwrap_or(1024);
+        let cache_size: usize = matches.value_of_t("cache-size").unwrap_or(1024);
         let cache_fallback: bool = matches.is_present("cache-fallback");
         Config::new(
             listen_config,

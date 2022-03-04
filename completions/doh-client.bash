@@ -9,29 +9,27 @@ _doh-client() {
     for i in ${COMP_WORDS[@]}
     do
         case "${i}" in
-            doh-client)
-                cmd="doh-client"
+            "$1")
+                cmd="doh__client"
                 ;;
-            
             *)
                 ;;
         esac
     done
 
     case "${cmd}" in
-        doh-client)
-            opts=" -g -h -V -l -r -d -t -p -c  --listen-activation --get --cache-fallback --help --version --listen-addr --remote-host --domain --retries --timeout --path --cache-size --client-auth-certs --client-auth-key --proxy-host --proxy-scheme --proxy-credentials --proxy-https-cafile --proxy-https-domain  <CAFILE> "
+        doh__client)
+            opts="-h -V -l -r -d -t -p -g -c --help --version --listen-addr --listen-activation --remote-host --domain --retries --timeout --path --get --cache-size --cache-fallback --client-auth-certs --client-auth-key --proxy-host --proxy-scheme --proxy-credentials --proxy-https-cafile --proxy-https-domain <CAFILE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
-                
                 --listen-addr)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -l)
+                -l)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -39,7 +37,7 @@ _doh-client() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -r)
+                -r)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -47,7 +45,7 @@ _doh-client() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -d)
+                -d)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -59,7 +57,7 @@ _doh-client() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -t)
+                -t)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -67,7 +65,7 @@ _doh-client() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -p)
+                -p)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -75,7 +73,7 @@ _doh-client() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -c)
+                -c)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -92,7 +90,7 @@ _doh-client() {
                     return 0
                     ;;
                 --proxy-scheme)
-                    COMPREPLY=($(compgen -W "socks5 socks5h http https" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "" -- "${cur}"))
                     return 0
                     ;;
                 --proxy-credentials)
@@ -114,7 +112,6 @@ _doh-client() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        
     esac
 }
 

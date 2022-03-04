@@ -1,19 +1,22 @@
 
-edit:completion:arg-completer[doh-client] = [@words]{
-    fn spaces [n]{
-        repeat $n ' ' | joins ''
+use builtin;
+use str;
+
+set edit:completion:arg-completer[doh-client] = {|@words|
+    fn spaces {|n|
+        builtin:repeat $n ' ' | str:join ''
     }
-    fn cand [text desc]{
-        edit:complex-candidate $text &display-suffix=' '(spaces (- 14 (wcswidth $text)))$desc
+    fn cand {|text desc|
+        edit:complex-candidate $text &display=$text' '(spaces (- 14 (wcswidth $text)))$desc
     }
-    command = 'doh-client'
-    for word $words[1:-1] {
-        if (has-prefix $word '-') {
+    var command = 'doh-client'
+    for word $words[1..-1] {
+        if (str:has-prefix $word '-') {
             break
         }
-        command = $command';'$word
+        set command = $command';'$word
     }
-    completions = [
+    var completions = [
         &'doh-client'= {
             cand -l 'Listen address [default: 127.0.0.1:53]'
             cand --listen-addr 'Listen address [default: 127.0.0.1:53]'
@@ -38,14 +41,14 @@ If the size is 0 then the private HTTP cache is not used (ignores cache-control)
             cand --proxy-https-cafile 'The path to the pem file, which contains the trusted CA certificates for the https proxy
 If no path is given then the platform''s native certificate store will be used'
             cand --proxy-https-domain 'The domain name of the https proxy'
+            cand -h 'Print help information'
+            cand --help 'Print help information'
+            cand -V 'Print version information'
+            cand --version 'Print version information'
             cand --listen-activation 'Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS'
             cand -g 'Use the GET method for the HTTP/2.0 request'
             cand --get 'Use the GET method for the HTTP/2.0 request'
             cand --cache-fallback 'Use expired cache entries if no response is received from the server'
-            cand -h 'Prints help information'
-            cand --help 'Prints help information'
-            cand -V 'Prints version information'
-            cand --version 'Prints version information'
         }
     ]
     $completions[$command]

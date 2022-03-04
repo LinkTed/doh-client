@@ -34,7 +34,6 @@ libc = "~0.2.119"
 base64 = "~0.13.0"
 log = "~0.4.14"
 env_logger = "~0.9.0"
-clap = "~2.34.0"
 tokio-rustls = "~0.23.2"
 futures = "~0.3.21"
 h2 = "~0.3.11"
@@ -47,6 +46,10 @@ lru = "~0.7.2"
 dns-message-parser = "~0.6.0"
 lazy_static = "~1.4.0"
 thiserror = "~1.0.30"
+
+[dependencies.clap]
+version = "~3.1.5"
+features = ["cargo"]
 
 [dependencies.async-http-proxy]
 version = "~1.2.5"
@@ -72,10 +75,6 @@ optional = true
 [dependencies.winlog]
 version =  "~0.2.6"
 optional = true
-
-[[bin]]
-name = "completions"
-path = "src/main_completions.rs"
 
 [[bin]]
 name = "windows-service"

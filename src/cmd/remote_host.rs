@@ -40,24 +40,20 @@ fn parse_host_port(host_port: &str) -> Result<(&str, u16), RemoteHostError> {
     }
 }
 
-fn get_remote_host_port(
-    arg_matches: &ArgMatches<'static>,
-) -> Result<(String, u16), RemoteHostError> {
+fn get_remote_host_port(arg_matches: &ArgMatches) -> Result<(String, u16), RemoteHostError> {
     let remote_host_port = arg_matches.value_of("remote-host").unwrap();
     let (remote_host, remote_port) = parse_host_port(remote_host_port)?;
     Ok((remote_host.to_owned(), remote_port))
 }
 
-fn get_direct(arg_matches: &ArgMatches<'static>) -> Result<RemoteHost, RemoteHostError> {
+fn get_direct(arg_matches: &ArgMatches) -> Result<RemoteHost, RemoteHostError> {
     let (remote_host, remote_port) = get_remote_host_port(arg_matches)?;
     let remote_host = RemoteHost::Direct(remote_host, remote_port);
     Ok(remote_host)
 }
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
-async fn get_proxy_host_port(
-    arg_matches: &ArgMatches<'static>,
-) -> Result<(String, u16), RemoteHostError> {
+async fn get_proxy_host_port(arg_matches: &ArgMatches) -> Result<(String, u16), RemoteHostError> {
     let proxy_host_port = arg_matches.value_of("proxy-host").unwrap();
     let (proxy_host, proxy_port) = parse_host_port(proxy_host_port)?;
     Ok((proxy_host.to_owned(), proxy_port))
@@ -65,7 +61,7 @@ async fn get_proxy_host_port(
 
 #[cfg(feature = "socks5")]
 async fn get_proxy_remote_addrs(
-    arg_matches: &ArgMatches<'static>,
+    arg_matches: &ArgMatches,
 ) -> Result<Vec<SocketAddr>, RemoteHostError> {
     let remote_host = arg_matches.value_of("remote-host").unwrap();
     let (host, port) = parse_host_port(remote_host)?;
@@ -84,7 +80,7 @@ async fn get_proxy_remote_addrs(
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
 fn get_proxy_credentials(
-    arg_matches: &ArgMatches<'static>,
+    arg_matches: &ArgMatches,
 ) -> Result<Option<(String, String)>, RemoteHostError> {
     if let Some(proxy_credentials) = arg_matches.value_of("proxy-credentials") {
         let proxy_credentials_vec: Vec<&str> = proxy_credentials.splitn(2, ':').collect();
@@ -104,7 +100,7 @@ fn get_proxy_credentials(
 
 #[cfg(feature = "http-proxy")]
 fn get_proxy_https_client_config(
-    arg_matches: &ArgMatches<'static>,
+    arg_matches: &ArgMatches,
 ) -> Result<ClientConfig, RemoteHostError> {
     let https_cafile = arg_matches.value_of("proxy-https-cafile");
     let root_store = load_root_store(https_cafile)?;
@@ -119,7 +115,7 @@ fn get_proxy_https_client_config(
 }
 
 #[cfg(feature = "http-proxy")]
-fn get_proxy_https_domain(arg_matches: &ArgMatches<'static>) -> String {
+fn get_proxy_https_domain(arg_matches: &ArgMatches) -> String {
     arg_matches
         .value_of("proxy-https-domain")
         .unwrap()
@@ -127,7 +123,7 @@ fn get_proxy_https_domain(arg_matches: &ArgMatches<'static>) -> String {
 }
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
-async fn get_proxy(arg_matches: &ArgMatches<'static>) -> Result<RemoteHost, RemoteHostError> {
+async fn get_proxy(arg_matches: &ArgMatches) -> Result<RemoteHost, RemoteHostError> {
     let proxy_scheme = arg_matches.value_of("proxy-scheme");
     if let Some(proxy_scheme) = proxy_scheme {
         let (proxy_host, proxy_port) = get_proxy_host_port(arg_matches).await?;
@@ -189,16 +185,14 @@ async fn get_proxy(arg_matches: &ArgMatches<'static>) -> Result<RemoteHost, Remo
 }
 
 #[cfg(all(not(feature = "socks5"), not(feature = "http-proxy")))]
-async fn get_proxy(_: &ArgMatches<'static>) -> Result<RemoteHost, RemoteHostError> {
+async fn get_proxy(_: &ArgMatches) -> Result<RemoteHost, RemoteHostError> {
     Err(RemoteHostError::Io(IoError::new(
         std::io::ErrorKind::Other,
         "Feature native-certs is not enabled",
     )))
 }
 
-pub async fn get_remote_host(
-    arg_matches: &ArgMatches<'static>,
-) -> Result<RemoteHost, RemoteHostError> {
+pub async fn get_remote_host(arg_matches: &ArgMatches) -> Result<RemoteHost, RemoteHostError> {
     if cfg!(any(feature = "socks5", feature = "http-proxy")) {
         get_proxy(arg_matches).await
     } else {

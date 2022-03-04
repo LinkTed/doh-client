@@ -116,7 +116,7 @@ This example will connect to the Cloudflare DNS service.
 trusted CA certificates.
 ```
 $ ./doh-client --help
-DNS over HTTPS client 3.1.0
+DNS over HTTPS client 3.1.1
 LinkTed <link.ted@mailbox.org>
 Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.
 By default, the client will connect to the Cloudflare DNS service.
@@ -124,46 +124,78 @@ This binary uses the env_logger as logger implementations.
 See https://github.com/sebasmagri/env_logger/
 
 USAGE:
-    doh-client [FLAGS] [OPTIONS] [CAFILE]
+    doh-client [OPTIONS] [CAFILE]
 
-FLAGS:
-        --cache-fallback       Use expired cache entries if no response is received from the server
-    -g, --get                  Use the GET method for the HTTP/2.0 request
-    -h, --help                 Prints help information
-        --listen-activation    Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS
-    -V, --version              Prints version information
+ARGS:
+    <CAFILE>    The path to the pem file, which contains the trusted CA certificates
+                If no path is given then the platform's native certificate store will be used
 
 OPTIONS:
     -c, --cache-size <UNSIGNED LONG>
             The size of the private HTTP cache
-            If the size is 0 then the private HTTP cache is not used (ignores cache-control) [default: 1024]
-    -d, --domain <Domain>                          The domain name of the remote server [default: cloudflare-dns.com]
-    -l, --listen-addr <Addr>                       Listen address [default: 127.0.0.1:53]
-    -p, --path <STRING>                            The path of the URI [default: dns-query]
-        --proxy-credentials <Username:Password>    The credentials for the proxy
-        --proxy-host <Addr/Domain:Port>            Socks5 or HTTP CONNECT proxy host (see below)
+            If the size is 0 then the private HTTP cache is not used (ignores cache-control)
+            [default: 1024]
+
+        --cache-fallback
+            Use expired cache entries if no response is received from the server
+
+        --client-auth-certs <CERTSFILE>
+            The path to the pem file, which contains the certificates for the client authentication
+
+        --client-auth-key <KEYFILE>
+            The path to the pem file, which contains the key for the client authentication
+
+    -d, --domain <Domain>
+            The domain name of the remote server [default: cloudflare-dns.com]
+
+    -g, --get
+            Use the GET method for the HTTP/2.0 request
+
+    -h, --help
+            Print help information
+
+    -l, --listen-addr <Addr:Port>
+            Listen address [default: 127.0.0.1:53]
+
+        --listen-activation
+            Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS
+
+    -p, --path <STRING>
+            The path of the URI [default: dns-query]
+
+        --proxy-credentials <Username:Password>
+            The credentials for the proxy
+
+        --proxy-host <Addr/Domain:Port>
+            Socks5 or HTTP CONNECT proxy host (see below)
+
         --proxy-https-cafile <CAFILE>
             The path to the pem file, which contains the trusted CA certificates for the https proxy
             If no path is given then the platform's native certificate store will be used
-        --proxy-https-domain <Domain>              The domain name of the https proxy
+
+        --proxy-https-domain <Domain>
+            The domain name of the https proxy
+
         --proxy-scheme <proxy-scheme>
             The protocol of the proxy [possible values: socks5, socks5h, http, https]
 
     -r, --remote-host <Addr/Domain:Port>
             Remote address/domain to the DOH server (see below) [default: 1.1.1.1:443]
 
-        --retries <UNSIGNED INT>                   The number of retries to connect to the remote server [default: 3]
+        --retries <UNSIGNED INT>
+            The number of retries to connect to the remote server [default: 3]
+
     -t, --timeout <UNSIGNED LONG>
-            The time in seconds after that the connection would be closed if no response is received from the server
-            [default: 2]
+            The time in seconds after that the connection would be closed if no response is received
+            from the server [default: 2]
 
-ARGS:
-    <CAFILE>    The path to the pem file, which contains the trusted CA certificates
-                If no path is given then the platform's native certificate store will be used
+    -V, --version
+            Print version information
 
-CAUTION: If a domain name is used for a <Addr/Domain:Port> value instead of an IP address the system resolver will be
-used to resolve the IP address of the domain name. If the `doh-client` is configured as system resolver, then it will
-NOT WORK. It is recommended to always use an IP address for <Addr/Domain:Port> values.
+CAUTION: If a domain name is used for a <Addr/Domain:Port> value instead of an IP address the system
+resolver will be used to resolve the IP address of the domain name. If the `doh-client` is
+configured as system resolver, then it will NOT WORK. It is recommended to always use an IP address
+for <Addr/Domain:Port> values.
 ```
 
 ## Cache performance
