@@ -1,8 +1,9 @@
 # doh-client
-`doh-client` is a DNS over HTTPS client, which opens a local UDP (DNS) port and forwards all DNS queries to a remote
-HTTP/2.0 server. By default, the client will connect to the Cloudflare DNS service. It uses [Tokio](https://tokio.rs/)
-for all asynchronous IO operations and [Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server.
-The client uses a private HTTP cache (see [RFC 7234](https://tools.ietf.org/html/rfc7234#section-5.2)) to increase the 
+`doh-client` is a DNS over HTTPS client, which opens a local UDP (DNS) port and forwards all DNS 
+queries to a remote HTTP/2.0 server. By default, the client will connect to the Cloudflare DNS
+service. It uses [Tokio](https://tokio.rs/) for all asynchronous IO operations and
+[Rustls](https://github.com/ctz/rustls) to connect to the HTTPS server. The client uses a private
+HTTP cache (see [RFC 7234](https://tools.ietf.org/html/rfc7234#section-5.2)) to increase the
 performance if the `--cache-size` is not zero.
 [![Build status](https://github.com/LinkTed/doh-client/workflows/Continuous%20Integration/badge.svg)](https://github.com/LinkTed/doh-client/actions?query=workflow%3A%22Continuous+Integration%22)
 [![Dependency status](https://deps.rs/repo/github/linkted/doh-client/status.svg)](https://deps.rs/repo/github/linkted/doh-client)
@@ -28,18 +29,20 @@ $ cargo build --no-default-features
 ```
 
 ### Run
-To run the binary, you need one positional argument, if `native-certs` feature is not active (see [Usage](#Usage)).
+To run the binary, you need one positional argument, if `native-certs` feature is not active (see
+[Usage](#Usage)).
 ```
 $ ./doh-client /path/to/the/ca/file.pem
 ```
-For example, if you use [Arch Linux](https://www.archlinux.org/) then the following command uses the system cert store:
+For example, if you use [Arch Linux](https://www.archlinux.org/) then the following command uses the
+system cert store:
 ```
 # ./doh-client /etc/ca-certificates/extracted/tls-ca-bundle.pem
 ```
 
 #### Linux (`systemd`)
-To run the `doh-client` as a daemon and without `root` under Linux with `systemd` as init system follow the instructions.
-This example will connect to the Cloudflare DNS service.
+To run the `doh-client` as a daemon and without `root` under Linux with `systemd` as init system
+follow the instructions. This example will connect to the Cloudflare DNS service.
 1. Build the binary (see [Build](#Build)).
 2. Copy the binary to `/usr/bin` as `root`:
    ```
@@ -49,10 +52,10 @@ This example will connect to the Cloudflare DNS service.
    ```
    # cp doh-client.service doh-client.socket /etc/systemd/system
    ```
-   If the location of the binary is different from above then change the path in `doh-client.service` under `ExecStart`. 
-   In the config file `doh-client.service` the path of the CA file is set to 
-   `/etc/ca-certificates/extracted/tls-ca-bundle.pem`, adjust the path before going further (The path should be correct 
-   if you use [Arch Linux](https://www.archlinux.org/)).
+   If the location of the binary is different from above then change the path in
+   `doh-client.service` under `ExecStart`. In the config file `doh-client.service` the path of the
+   CA file is set to `/etc/ca-certificates/extracted/tls-ca-bundle.pem`, adjust the path before
+   going further (The path should be correct if you use [Arch Linux](https://www.archlinux.org/)).
 4. Reload `systemd` manager configuration:
    ```
    # systemctl daemon-reload
@@ -70,14 +73,15 @@ This example will connect to the Cloudflare DNS service.
    nameserver 127.0.0.1
    ```
 ##### Additional
-If [AppArmor](https://gitlab.com/apparmor/apparmor/wikis/home/) is used then the `doh-client` profile from the 
-repository can be applied to [AppArmor](https://gitlab.com/apparmor/apparmor/wikis/home/).
+If [AppArmor](https://gitlab.com/apparmor/apparmor/wikis/home/) is used then the `doh-client`
+profile from the repository can be applied to
+[AppArmor](https://gitlab.com/apparmor/apparmor/wikis/home/).
 1. Copy the profile file `usr.bin.doh-client` to `/etc/apparmor.d/` as `root`:
    ```
    # cp usr.bin.doh-client /etc/apparmor.d/
    ```
-   If the location of the CA file is different from `/etc/ca-certificates/extracted/tls-ca-bundle.pem` then change the 
-   path in `usr.bin.doh-client`.
+   If the location of the CA file is different from
+   `/etc/ca-certificates/extracted/tls-ca-bundle.pem` then change the path in `usr.bin.doh-client`.
 2. Reboot the system or reload all profiles:
    ```
    # systemctl restart apparmor.service
@@ -97,11 +101,12 @@ This example will connect to the Cloudflare DNS service.
    ```
    # cp com.doh-client.daemon.plist /Library/LaunchDaemons
    ```
-   If the location of the binary is different from above then change the path in `com.doh-client.daemon.plist` under 
-   `ProgramArguments`. In the config file `com.doh-client.daemon.plist` the path of the CA file is set to 
-   `/usr/local/share/doh-client/DigiCert_Global_Root_CA.pem`, download the pem file under the following 
-   [link](https://dl.cacerts.digicert.com/DigiCertGlobalRootCA.crt). Before copy the pem file to 
-   `/usr/local/share/doh-client/`, make the directory `doh-client` with `mkdir`.
+   If the location of the binary is different from above then change the path in
+   `com.doh-client.daemon.plist` under `ProgramArguments`. In the config file
+   `com.doh-client.daemon.plist` the path of the CA file is set to
+   `/usr/local/share/doh-client/DigiCert_Global_Root_CA.pem`, download the pem file under the
+   following [link](https://dl.cacerts.digicert.com/DigiCertGlobalRootCA.crt). Before copy the pem
+   file to `/usr/local/share/doh-client/`, make the directory `doh-client` with `mkdir`.
 4. Load and start the config file as follow:
    ```
    # launchctl load -w /Library/LaunchDaemons/com.doh-client.daemon.plist
@@ -112,8 +117,8 @@ This example will connect to the Cloudflare DNS service.
    ```
 
 ## Usage
-`doh-client` has one required positional argument, `CAFILE` which sets the path to a pem file, which contains the 
-trusted CA certificates.
+`doh-client` has one required positional argument, `CAFILE` which sets the path to a pem file, which
+contains the trusted CA certificates.
 ```
 $ ./doh-client --help
 DNS over HTTPS client 3.1.1
@@ -199,8 +204,9 @@ for <Addr/Domain:Port> values.
 ```
 
 ## Cache performance
-To demonstrate that the private HTTP cache (see [RFC 7234](https://tools.ietf.org/html/rfc7234#section-5.2)) increases 
-the performance of the client, make a request to `github.com`:
+To demonstrate that the private HTTP cache (see
+[RFC 7234](https://tools.ietf.org/html/rfc7234#section-5.2)) increases the performance of the
+client, make a request to `github.com`:
 ```
 $ dig github.com +nocookie
 
@@ -224,7 +230,8 @@ github.com.     8   IN  A   192.30.253.113
 ;; WHEN: Sa Jan 05 20:00:20 CET 2019
 ;; MSG SIZE  rcvd: 71
 ```
-The query took 35 milliseconds. If the request is made again (**quick**, before the response is removed from the cache):
+The query took 35 milliseconds. If the request is made again (**quick**, before the response is
+removed from the cache):
 ```
 $ dig github.com +nocookie
 
@@ -251,13 +258,18 @@ github.com.     8   IN  A   192.30.253.113
 Now, the query took 0 milliseconds, because it was cached.
 
 How long is a DNS request and response in the cache?  
-1. If `control-cache: max-age=XXX` is present in the HTTP header then this value is used. For example, if the server responds with a 
-   `control-cache: max-age=100` then the DNS request and response is in the cache for 100 seconds. After 100 seconds, 
-   the client will forward the request to the server again.
-2. If `control-cache: max-age=XXX` is not present then the smallest TTL in the answer, authority and additional section of the DNS response is used.
+1. If `control-cache: max-age=XXX` is present in the HTTP header then this value is used. For
+   example, if the server responds with a `control-cache: max-age=100` then the DNS request and
+   response is in the cache for 100 seconds. After 100 seconds, the client will forward the request
+   to the server again.
+2. If `control-cache: max-age=XXX` is not present then the smallest TTL in the answer, authority and
+   additional section of the DNS response is used.
 
 ## License
-This project is licensed under the [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) license.
+This project is licensed under the [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause)
+license.
 
 ### Contribution
-Any contribution intentionally submitted for inclusion in `doh-client` by you, shall be licensed as [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause), without any additional terms or conditions.
+Any contribution intentionally submitted for inclusion in `doh-client` by you, shall be licensed as
+[BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause), without any additional terms or
+conditions.
