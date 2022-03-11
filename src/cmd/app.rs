@@ -87,15 +87,6 @@ fn proxy_args(app: App<'static, 'static>) -> App<'static, 'static> {
                     .help("The domain name of the https proxy")
                     .required_if("proxy-scheme", "https"),
             )
-            .group(ArgGroup::with_name("proxy").args(
-                &[
-                    "proxy-host",
-                    "proxy-scheme",
-                    "proxy-credentials",
-                    "proxy-https-domain",
-                    "proxy-https-cafile",
-                ][..],
-            ))
     } else {
         app.group(
             ArgGroup::with_name("proxy")
