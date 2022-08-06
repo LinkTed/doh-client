@@ -158,11 +158,7 @@ async fn get_response_from_cache_fallback<'a>(
     }
 }
 
-pub async fn request_handler(
-    msg: Bytes,
-    addr: SocketAddr,
-    context: &'static Context,
-) -> DohResult<()> {
+pub async fn request_handler(msg: Bytes, addr: SocketAddr, context: &Context) -> DohResult<()> {
     let mut dns_request = Dns::decode(msg)?;
     if dns_request.is_response() {
         return Err(DohError::DnsNotRequest(dns_request));
