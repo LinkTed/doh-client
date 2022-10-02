@@ -6,7 +6,7 @@ use std::{
 };
 
 pub(super) fn load_certs_as_bytes(path: &str) -> IoResult<Vec<Vec<u8>>> {
-    let cafile = File::open(&path)?;
+    let cafile = File::open(path)?;
     let mut cafile_buf_reader = BufReader::new(cafile);
     certs(&mut cafile_buf_reader)
 }
@@ -20,7 +20,7 @@ pub(super) fn load_certs(path: &str) -> IoResult<Vec<Certificate>> {
 }
 
 pub(super) fn load_private_key(path: &str) -> IoResult<PrivateKey> {
-    let private_key = File::open(&path)?;
+    let private_key = File::open(path)?;
     let mut reader = BufReader::new(private_key);
 
     while let Some(item) = read_one(&mut reader)? {
