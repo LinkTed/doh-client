@@ -1,5 +1,6 @@
 use lru::LruCache;
 use std::hash::Hash;
+use std::num::NonZeroUsize;
 use std::time::{Duration, Instant};
 
 pub(crate) struct Cache<K: Eq + Hash, V> {
@@ -7,7 +8,7 @@ pub(crate) struct Cache<K: Eq + Hash, V> {
 }
 
 impl<K: Eq + Hash + Clone, V> Cache<K, V> {
-    pub(crate) fn new(max_size: usize) -> Cache<K, V> {
+    pub(crate) fn new(max_size: NonZeroUsize) -> Cache<K, V> {
         Cache {
             lru_cache: LruCache::new(max_size),
         }
@@ -46,6 +47,7 @@ impl<K: Eq + Hash + Clone, V> Cache<K, V> {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroUsize;
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -53,7 +55,7 @@ mod tests {
 
     #[test]
     fn test_1() {
-        let mut cache: Cache<i32, i32> = Cache::new(2);
+        let mut cache: Cache<i32, i32> = Cache::new(NonZeroUsize::new(2).unwrap());
         let d = Duration::from_secs(10);
 
         cache.put(1, 4, d);
@@ -68,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_2() {
-        let mut cache: Cache<i32, i32> = Cache::new(2);
+        let mut cache: Cache<i32, i32> = Cache::new(NonZeroUsize::new(2).unwrap());
         let d = Duration::from_secs(10);
 
         cache.put(1, 4, d);
@@ -83,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_3() {
-        let mut cache: Cache<i32, i32> = Cache::new(1);
+        let mut cache: Cache<i32, i32> = Cache::new(NonZeroUsize::new(1).unwrap());
         let key = 10;
         let mut value = 20;
 
@@ -100,7 +102,7 @@ mod tests {
 
     #[test]
     fn test_4() {
-        let mut cache: Cache<i32, i32> = Cache::new(1);
+        let mut cache: Cache<i32, i32> = Cache::new(NonZeroUsize::new(1).unwrap());
         let key = 10;
         let mut value = 20;
 
