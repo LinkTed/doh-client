@@ -8,7 +8,7 @@ use crate::{
 use clap::ArgMatches;
 use futures::lock::Mutex;
 use rustls::ClientConfig;
-use std::{io::Result as IoResult, sync::Arc};
+use std::{io::Result as IoResult, num::NonZeroUsize, sync::Arc};
 use tokio::net::UdpSocket;
 
 fn create_client_config(
@@ -114,7 +114,8 @@ impl Config {
         let cache = if self.cache_size == 0 {
             None
         } else {
-            Some(Mutex::new(Cache::new(self.cache_size)))
+            let cache_size = NonZeroUsize::new(self.cache_size).unwrap();
+            Some(Mutex::new(Cache::new(cache_size)))
         };
         let cache_fallback = self.cache_fallback;
         let timeout = self.timeout;
