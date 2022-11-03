@@ -10,7 +10,7 @@ keywords = ["doh", "dns", "http2", "h2"]
 include = [
     "src/**/*.rs",
     "tests/*.rs",
-    "examples/*.rs", 
+    "package/**/*",
     "Cargo.toml",
     "Cargo.lock",
     "README.md",
