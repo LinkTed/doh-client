@@ -46,16 +46,5 @@ SecureBits=noroot,noroot-locked
 SecureBits=no-cap-ambient-raise,no-cap-ambient-raise-locked
 
 
-# System Call Filtering
-## syscall filter for the current Arch Linux kernel (remove it for other distros if it causes
-## problems)
-SystemCallFilter=access arch_prctl bind brk clone clone3 close connect epoll_create1 epoll_ctl
-SystemCallFilter=epoll_wait eventfd2 execve fcntl futex getrandom getsockopt ioctl mmap mprotect
-SystemCallFilter=munmap newfstatat openat poll prctl pread64 prlimit64 read recvfrom rt_sigaction
-SystemCallFilter=rt_sigprocmask sched_getaffinity sendto set_robust_list set_tid_address setsockopt
-SystemCallFilter=sigaltstack socket statx write writev
-##
-SystemCallErrorNumber=EPERM
-
 [Install]
 WantedBy=multi-user.target
