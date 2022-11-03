@@ -1,0 +1,26 @@
+#!/sbin/openrc-run
+
+: ${DOH_CLIENT_PIDFILE:=${RC_PREFIX%/}/run/${SVCNAME}.pid}
+: ${DOH_CLIENT_BINARY:=${RC_PREFIX%/}/usr/bin/doh-client}
+: ${DOH_CLIENT_COMMAND_ARGS:=--listen-addr 127.0.0.1:53}
+: ${DOH_CLIENT_LOG_LEVEL:=info}
+
+export RUST_LOG="${DOH_CLIENT_LOG_LEVEL}"
+
+command="${DOH_CLIENT_BINARY}"
+pidfile="${DOH_CLIENT_PIDFILE}"
+command_args="${DOH_CLIENT_COMMAND_ARGS}"
+
+start_stop_daemon_args="${DOH_CLIENT_SSD_OPTS}"
+command_background=true
+command_user="nobody:nobody"
+capabilities="^cap_net_bind_service"
+no_new_privs=1
+
+error_logger="${RC_PREFIX%/}/usr/bin/logger -t doh-client"
+
+depend() {
+	need net
+	use logger
+}
+
