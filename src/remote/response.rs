@@ -86,21 +86,32 @@ fn get_min_ttl(dns: &Dns) -> Option<Duration> {
 async fn get_body(recv_stream: &mut RecvStream) -> DohResult<Bytes> {
     let mut body = BytesMut::new();
     while let Some(result) = recv_stream.data().await {
-        let b = result?;
-        let body_len = body.len();
-        let b_len = b.len();
+        match result {
+            Ok(b) => {
+                let body_len = body.len();
+                let b_len = b.len();
 
-        recv_stream.flow_control().release_capacity(b_len)?;
+                recv_stream.flow_control().release_capacity(b_len)?;
 
-        if body_len < MAXIMUM_DNS_PACKET_SIZE {
-            if body_len + b_len < MAXIMUM_DNS_PACKET_SIZE {
-                body.extend(b);
-            } else {
-                body.extend(b.slice(0..MAXIMUM_DNS_PACKET_SIZE - body_len));
-                break;
+                if body_len < MAXIMUM_DNS_PACKET_SIZE {
+                    if body_len + b_len < MAXIMUM_DNS_PACKET_SIZE {
+                        body.extend(b);
+                    } else {
+                        body.extend(b.slice(0..MAXIMUM_DNS_PACKET_SIZE - body_len));
+                        break;
+                    }
+                } else {
+                    break;
+                }
             }
-        } else {
-            break;
+            Err(e) => {
+                // If we get a reset and already received any bytes then use as a response.
+                if e.is_reset() && !body.is_empty() {
+                    break;
+                } else {
+                    return Err(DohError::H2(e));
+                }
+            }
         }
     }
     Ok(body.freeze())
