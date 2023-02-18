@@ -23,7 +23,7 @@ pub enum RemoteHostError {
     Io(#[from] IoError),
     #[error("Unknown port: {0}")]
     UnknownPort(String),
-    #[error("Unknown hostm and port: {0}")]
+    #[error("Unknown host and port: {0}")]
     UnknownHostPort(String),
 }
 
