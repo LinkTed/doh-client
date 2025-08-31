@@ -3,16 +3,13 @@ use crate::DohResult;
 use async_http_proxy::{http_connect_tokio, http_connect_tokio_with_basic_auth, HttpError};
 use bytes::Bytes;
 use h2::client::{handshake, SendRequest};
-use rustls::ClientConfig;
-use rustls::ServerName;
-use std::convert::TryFrom;
+use rustls_pki_types::ServerName;
 use std::io::Result as IoResult;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio::spawn;
-use tokio_rustls::client::TlsStream;
-use tokio_rustls::TlsConnector;
+use tokio_rustls::{client::TlsStream, rustls::ClientConfig, TlsConnector};
 #[cfg(feature = "socks5")]
 use tokio_socks::tcp::Socks5Stream;
 #[cfg(feature = "socks5")]
@@ -42,7 +39,7 @@ where
 {
     let tls_connector = TlsConnector::from(config.clone());
     tls_connector
-        .connect(ServerName::try_from(domain).unwrap(), connection)
+        .connect(ServerName::try_from(domain.to_owned()).unwrap(), connection)
         .await
 }
 

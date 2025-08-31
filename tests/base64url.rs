@@ -1,4 +1,4 @@
-use base64::{encode_config, URL_SAFE_NO_PAD};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 
 #[test]
 fn www_example_com() {
@@ -9,7 +9,7 @@ fn www_example_com() {
     ];
     let result = "AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB";
 
-    assert_eq!(result, encode_config(&msg[..], URL_SAFE_NO_PAD));
+    assert_eq!(result, URL_SAFE_NO_PAD.encode(&msg[..]));
 }
 
 #[test]
@@ -26,5 +26,5 @@ fn a_62characterlabel_makes_base64url_distinct_from_standard_base64_example_com(
     let result = "AAABAAABAAAAAAAAAWE-NjJjaGFyYWN0ZXJsYWJlbC1tYWtlcy1iYXNlNjR1cmwtZGlzdGluY3Q\
     tZnJvbS1zdGFuZGFyZC1iYXNlNjQHZXhhbXBsZQNjb20AAAEAAQ";
 
-    assert_eq!(result, encode_config(&msg[..], URL_SAFE_NO_PAD));
+    assert_eq!(result, URL_SAFE_NO_PAD.encode(&msg[..]));
 }

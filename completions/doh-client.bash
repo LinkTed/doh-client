@@ -1,15 +1,19 @@
 _doh-client() {
-    local i cur prev opts cmds
+    local i cur prev opts cmd
     COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+        cur="$2"
+    else
+        cur="${COMP_WORDS[COMP_CWORD]}"
+    fi
+    prev="$3"
     cmd=""
     opts=""
 
-    for i in ${COMP_WORDS[@]}
+    for i in "${COMP_WORDS[@]:0:COMP_CWORD}"
     do
-        case "${i}" in
-            "$1")
+        case "${cmd},${i}" in
+            ",$1")
                 cmd="doh__client"
                 ;;
             *)
@@ -19,7 +23,7 @@ _doh-client() {
 
     case "${cmd}" in
         doh__client)
-            opts="-h -V -l -r -d -t -p -g -c --help --version --listen-addr --listen-activation --remote-host --domain --retries --timeout --path --get --cache-size --cache-fallback --client-auth-certs --client-auth-key --proxy-host --proxy-scheme --proxy-credentials --proxy-https-cafile --proxy-https-domain <CAFILE>"
+            opts="-l -r -d -t -p -g -c -h -V --listen-addr --listen-activation --remote-host --domain --retries --timeout --path --get --cache-size --cache-fallback --client-auth-certs --client-auth-key --proxy-host --proxy-scheme --proxy-credentials --proxy-https-cafile --proxy-https-domain --help --version [CAFILE]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -90,7 +94,7 @@ _doh-client() {
                     return 0
                     ;;
                 --proxy-scheme)
-                    COMPREPLY=($(compgen -W "" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "socks5 socks5h http https" -- "${cur}"))
                     return 0
                     ;;
                 --proxy-credentials)
@@ -115,4 +119,8 @@ _doh-client() {
     esac
 }
 
-complete -F _doh-client -o bashdefault -o default doh-client
+if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
+    complete -F _doh-client -o nosort -o bashdefault -o default doh-client
+else
+    complete -F _doh-client -o bashdefault -o default doh-client
+fi
