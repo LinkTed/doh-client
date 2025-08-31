@@ -1,32 +1,30 @@
-use rustls::{Certificate, PrivateKey, RootCertStore};
+use rustls::RootCertStore;
 use rustls_pemfile::{certs, read_one, Item};
+use rustls_pki_types::{CertificateDer, PrivateKeyDer};
 use std::{
     fs::File,
     io::{BufReader, Error as IoError, ErrorKind as IoErrorKind, Result as IoResult},
 };
 
-pub(super) fn load_certs_as_bytes(path: &str) -> IoResult<Vec<Vec<u8>>> {
+pub(super) fn load_certs(path: &str) -> IoResult<Vec<CertificateDer<'static>>> {
+    let mut result = Vec::new();
     let cafile = File::open(path)?;
     let mut cafile_buf_reader = BufReader::new(cafile);
-    certs(&mut cafile_buf_reader)
+    for cert_result in certs(&mut cafile_buf_reader) {
+        result.push(cert_result?);
+    }
+    Ok(result)
 }
 
-pub(super) fn load_certs(path: &str) -> IoResult<Vec<Certificate>> {
-    let certs = load_certs_as_bytes(path)?
-        .iter()
-        .map(|v| rustls::Certificate(v.clone()))
-        .collect();
-    Ok(certs)
-}
-
-pub(super) fn load_private_key(path: &str) -> IoResult<PrivateKey> {
+pub(super) fn load_private_key(path: &str) -> IoResult<PrivateKeyDer<'static>> {
     let private_key = File::open(path)?;
     let mut reader = BufReader::new(private_key);
 
     while let Some(item) = read_one(&mut reader)? {
         match item {
-            Item::RSAKey(private_key) => return Ok(PrivateKey(private_key)),
-            Item::PKCS8Key(private_key) => return Ok(PrivateKey(private_key)),
+            Item::Pkcs1Key(private_key) => return Ok(PrivateKeyDer::Pkcs1(private_key)),
+            Item::Pkcs8Key(private_key) => return Ok(PrivateKeyDer::Pkcs8(private_key)),
+            Item::Sec1Key(private_key) => return Ok(PrivateKeyDer::Sec1(private_key)),
             _ => {}
         }
     }
@@ -38,33 +36,30 @@ pub(super) fn load_private_key(path: &str) -> IoResult<PrivateKey> {
 }
 
 #[cfg(feature = "native-certs")]
-fn load_native_certs() -> IoResult<Vec<Certificate>> {
-    Ok(rustls_native_certs::load_native_certs()?
-        .into_iter()
-        .map(|cert| Certificate(cert.0))
-        .collect())
+fn load_native_certs() -> (Vec<CertificateDer<'static>>, usize) {
+    let result = rustls_native_certs::load_native_certs();
+    (result.certs, result.errors.len())
 }
 
 #[cfg(not(feature = "native-certs"))]
-fn load_native_certs() -> IoResult<Vec<Certificate>> {
-    Err(IoError::new(
-        IoErrorKind::Other,
-        "Feature native-certs is not enabled",
-    ))
+fn load_native_certs() -> (Vec<CertificateDer<'static>>, usize) {
+    (Vec::new(), 1)
 }
 
-pub(super) fn load_root_store(cafile: Option<&str>) -> IoResult<RootCertStore> {
+pub(super) fn load_root_store(cafile: Option<&String>) -> IoResult<RootCertStore> {
     let mut root_store = RootCertStore::empty();
     let mut added = 0;
     let mut ignored = 0;
     if let Some(cafile) = cafile {
-        let certs = load_certs_as_bytes(cafile)?;
-        let result = root_store.add_parsable_certificates(&certs);
+        let certs = load_certs(cafile)?;
+        let result = root_store.add_parsable_certificates(certs);
         added = result.0;
         ignored = result.1;
     } else {
-        for cert in load_native_certs()? {
-            match root_store.add(&cert) {
+        let (certs, errors) = load_native_certs();
+        ignored += errors;
+        for cert in certs {
+            match root_store.add(cert) {
                 Ok(_) => added += 1,
                 Err(_) => ignored += 1,
             }

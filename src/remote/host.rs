@@ -6,9 +6,9 @@ use super::{try_socks5_connect, try_socks5h_connect};
 use crate::DohResult;
 use bytes::Bytes;
 use h2::client::SendRequest;
-use rustls::ClientConfig;
 use std::fmt::{Display, Formatter, Result};
 use std::sync::Arc;
+use tokio_rustls::rustls::ClientConfig;
 
 pub enum Host {
     Direct(String, u16),

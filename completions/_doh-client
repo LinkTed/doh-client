@@ -14,40 +14,37 @@ _doh-client() {
     fi
 
     local context curcontext="$curcontext" state line
-    _arguments "${_arguments_options[@]}" \
-'(--listen-activation)-l+[Listen address \[default: 127.0.0.1:53\]]:Addr:Port: ' \
-'(--listen-activation)--listen-addr=[Listen address \[default: 127.0.0.1:53\]]:Addr:Port: ' \
-'-r+[Remote address/domain to the DOH server (see below)]:Addr/Domain:Port: ' \
-'--remote-host=[Remote address/domain to the DOH server (see below)]:Addr/Domain:Port: ' \
-'-d+[The domain name of the remote server]:Domain: ' \
-'--domain=[The domain name of the remote server]:Domain: ' \
-'--retries=[The number of retries to connect to the remote server]:UNSIGNED INT: ' \
-'-t+[The time in seconds after that the connection would be closed if no response is received from the server]:UNSIGNED LONG: ' \
-'--timeout=[The time in seconds after that the connection would be closed if no response is received from the server]:UNSIGNED LONG: ' \
-'-p+[The path of the URI]:STRING: ' \
-'--path=[The path of the URI]:STRING: ' \
-'-c+[The size of the private HTTP cache
-If the size is 0 then the private HTTP cache is not used (ignores cache-control)]:UNSIGNED LONG: ' \
-'--cache-size=[The size of the private HTTP cache
-If the size is 0 then the private HTTP cache is not used (ignores cache-control)]:UNSIGNED LONG: ' \
-'--client-auth-certs=[The path to the pem file, which contains the certificates for the client authentication]:CERTSFILE: ' \
-'--client-auth-key=[The path to the pem file, which contains the key for the client authentication]:KEYFILE: ' \
-'--proxy-host=[Socks5 or HTTP CONNECT proxy host (see below)]:Addr/Domain:Port: ' \
+    _arguments "${_arguments_options[@]}" : \
+'(--listen-activation)-l+[Listen address \[default\: 127.0.0.1\:53\]]:Addr:Port:_default' \
+'(--listen-activation)--listen-addr=[Listen address \[default\: 127.0.0.1\:53\]]:Addr:Port:_default' \
+'-r+[Remote address/domain to the DOH server (see below)]:Addr/Domain:Port:_default' \
+'--remote-host=[Remote address/domain to the DOH server (see below)]:Addr/Domain:Port:_default' \
+'-d+[The domain name of the remote server]:Domain:_default' \
+'--domain=[The domain name of the remote server]:Domain:_default' \
+'--retries=[The number of retries to connect to the remote server]:UNSIGNED INT:_default' \
+'-t+[The time in seconds after that the connection would be closed if no response is received from the server]:UNSIGNED LONG:_default' \
+'--timeout=[The time in seconds after that the connection would be closed if no response is received from the server]:UNSIGNED LONG:_default' \
+'-p+[The path of the URI]:STRING:_default' \
+'--path=[The path of the URI]:STRING:_default' \
+'-c+[The size of the private HTTP cache If the size is 0 then the private HTTP cache is not used (ignores cache-control)]:UNSIGNED LONG:_default' \
+'--cache-size=[The size of the private HTTP cache If the size is 0 then the private HTTP cache is not used (ignores cache-control)]:UNSIGNED LONG:_default' \
+'--client-auth-certs=[The path to the pem file, which contains the certificates for the client authentication]:CERTSFILE:_default' \
+'--client-auth-key=[The path to the pem file, which contains the key for the client authentication]:KEYFILE:_default' \
+'--proxy-host=[Socks5 or HTTP CONNECT proxy host (see below)]:Addr/Domain:Port:_default' \
 '--proxy-scheme=[The protocol of the proxy]: :(socks5 socks5h http https)' \
-'--proxy-credentials=[The credentials for the proxy]:Username:Password: ' \
-'--proxy-https-cafile=[The path to the pem file, which contains the trusted CA certificates for the https proxy
-If no path is given then the platform'\''s native certificate store will be used]:CAFILE: ' \
-'--proxy-https-domain=[The domain name of the https proxy]:Domain: ' \
-'-h[Print help information]' \
-'--help[Print help information]' \
-'-V[Print version information]' \
-'--version[Print version information]' \
+'--proxy-credentials=[The credentials for the proxy]:Username:Password:_default' \
+'--proxy-https-cafile=[The path to the pem file, which contains the trusted CA certificates for the https proxy If no path is given then the platform'\''s native certificate store will be used]:CAFILE:_default' \
+'--proxy-https-domain=[The domain name of the https proxy]:Domain:_default' \
 '(-l --listen-addr)--listen-activation[Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() under Mac OS]' \
 '-g[Use the GET method for the HTTP/2.0 request]' \
 '--get[Use the GET method for the HTTP/2.0 request]' \
 '--cache-fallback[Use expired cache entries if no response is received from the server]' \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
 '::cafile -- The path to the pem file, which contains the trusted CA certificates
-If no path is given then the platform'\''s native certificate store will be used:' \
+If no path is given then the platform'\''s native certificate store will be used:_default' \
 && ret=0
 }
 
@@ -57,4 +54,8 @@ _doh-client_commands() {
     _describe -t commands 'doh-client commands' commands "$@"
 }
 
-_doh-client "$@"
+if [ "$funcstack[1]" = "_doh-client" ]; then
+    _doh-client "$@"
+else
+    compdef _doh-client doh-client
+fi

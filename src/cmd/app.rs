@@ -1,4 +1,7 @@
-use clap::{crate_authors, crate_description, crate_version, Arg, Command};
+use std::net::SocketAddr;
+
+use clap::value_parser;
+use clap::{crate_authors, crate_description, crate_version, Arg, ArgAction, Command};
 
 const ABOUT: &str =
     "Open a local UDP (DNS) port and forward DNS queries to a remote HTTP/2.0 server.\n\
@@ -13,56 +16,48 @@ const AFTER_HELP: &str =
     always use an IP address for <Addr/Domain:Port> values.\n";
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
-fn proxy_args(app: Command<'static>) -> Command<'static> {
-    let (proxy_host_help, proxy_scheme_possible_values) =
-        if cfg!(all(feature = "socks5", feature = "http-proxy")) {
-            (
-                "Socks5 or HTTP CONNECT proxy host (see below)",
-                &["socks5", "socks5h", "http", "https"][..],
-            )
-        } else if cfg!(all(feature = "socks5", not(feature = "http-proxy"))) {
-            ("Socks5 proxy host (see below)", &["socks5", "socks5h"][..])
-        } else {
-            (
-                "HTTP CONNECT proxy host (see below)",
-                &["http", "https"][..],
-            )
-        };
+fn proxy_args(app: Command) -> Command {
+    use clap::ArgAction;
 
-    let command = app
-        .arg(
-            Arg::new("proxy-host")
-                .long("proxy-host")
-                .takes_value(true)
-                .value_name("Addr/Domain:Port")
-                .help(proxy_host_help)
-                .required(false)
-                .requires("proxy-scheme"),
-        )
-        .arg(
-            Arg::new("proxy-scheme")
-                .long("proxy-scheme")
-                .takes_value(true)
-                .possible_values(proxy_scheme_possible_values)
-                .help("The protocol of the proxy")
-                .required(false)
-                .requires("proxy-host"),
-        )
-        .arg(
-            Arg::new("proxy-credentials")
-                .long("proxy-credentials")
-                .takes_value(true)
-                .value_name("Username:Password")
-                .help("The credentials for the proxy")
-                .requires_all(&["proxy-host", "proxy-scheme"][..]),
-        );
+    let mut proxy_host = Arg::new("proxy-host")
+        .long("proxy-host")
+        .action(ArgAction::Set)
+        .value_name("Addr/Domain:Port")
+        .required(false)
+        .requires("proxy-scheme");
+
+    let mut proxy_scheme = Arg::new("proxy-scheme")
+        .long("proxy-scheme")
+        .action(ArgAction::Set)
+        .help("The protocol of the proxy")
+        .required(false)
+        .requires("proxy-host");
+
+    if cfg!(all(feature = "socks5", feature = "http-proxy")) {
+        proxy_host = proxy_host.help("Socks5 or HTTP CONNECT proxy host (see below)");
+        proxy_scheme = proxy_scheme.value_parser(["socks5", "socks5h", "http", "https"]);
+    } else if cfg!(all(feature = "socks5", not(feature = "http-proxy"))) {
+        proxy_host = proxy_host.help("Socks5 proxy host (see below)");
+        proxy_scheme = proxy_scheme.value_parser(["socks5", "socks5h"]);
+    } else {
+        proxy_host = proxy_host.help("HTTP CONNECT proxy host (see below)");
+        proxy_scheme = proxy_scheme.value_parser(["http", "https"]);
+    }
+
+    let command = app.arg(proxy_host).arg(proxy_scheme).arg(
+        Arg::new("proxy-credentials")
+            .long("proxy-credentials")
+            .action(ArgAction::Set)
+            .value_name("Username:Password")
+            .help("The credentials for the proxy")
+            .requires_all(&["proxy-host", "proxy-scheme"][..]),
+    );
 
     if cfg!(feature = "http-proxy") {
         let arg = Arg::new("proxy-https-cafile")
-            .takes_value(true)
             .value_name("CAFILE")
             .long("proxy-https-cafile")
-            .takes_value(true);
+            .action(ArgAction::Set);
         let arg = if cfg!(feature = "native-certs") {
             arg.help(
                 "The path to the pem file, which contains the trusted CA \
@@ -80,7 +75,7 @@ fn proxy_args(app: Command<'static>) -> Command<'static> {
         };
         command.arg(arg).arg(
             Arg::new("proxy-https-domain")
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("Domain")
                 .long("proxy-https-domain")
                 .help("The domain name of the https proxy")
@@ -91,8 +86,10 @@ fn proxy_args(app: Command<'static>) -> Command<'static> {
     }
 }
 
-fn cafile(command: Command<'static>) -> Command<'static> {
-    let arg = Arg::new("cafile").takes_value(true).value_name("CAFILE");
+fn cafile(command: Command) -> Command {
+    let arg = Arg::new("cafile")
+        .action(ArgAction::Set)
+        .value_name("CAFILE");
     let arg = if cfg!(feature = "native-certs") {
         arg.help(
             "The path to the pem file, which contains the trusted CA certificates\n\
@@ -108,7 +105,7 @@ fn cafile(command: Command<'static>) -> Command<'static> {
 }
 
 /// Get the `clap::App` object for the argument parsing.
-pub fn get_command() -> Command<'static> {
+pub fn get_command() -> Command {
     let command = Command::new(crate_description!())
         .version(crate_version!())
         .author(crate_authors!())
@@ -116,10 +113,11 @@ pub fn get_command() -> Command<'static> {
         .after_help(AFTER_HELP)
         .arg(
             Arg::new("listen-addr")
+                .value_parser(value_parser!(SocketAddr))
                 .short('l')
                 .long("listen-addr")
                 .conflicts_with("listen-activation")
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("Addr:Port")
                 .help("Listen address [default: 127.0.0.1:53]")
                 .required(false),
@@ -127,6 +125,7 @@ pub fn get_command() -> Command<'static> {
         .arg(
             Arg::new("listen-activation")
                 .long("listen-activation")
+                .action(ArgAction::SetTrue)
                 .conflicts_with("listen-addr")
                 .help(
                     "Use file descriptor 3 under Unix as UDP socket or launch_activate_socket() \
@@ -138,7 +137,7 @@ pub fn get_command() -> Command<'static> {
             Arg::new("remote-host")
                 .short('r')
                 .long("remote-host")
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("Addr/Domain:Port")
                 .help("Remote address/domain to the DOH server (see below)")
                 .default_value("1.1.1.1:443")
@@ -148,7 +147,7 @@ pub fn get_command() -> Command<'static> {
             Arg::new("domain")
                 .short('d')
                 .long("domain")
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("Domain")
                 .help("The domain name of the remote server")
                 .default_value("cloudflare-dns.com")
@@ -156,7 +155,8 @@ pub fn get_command() -> Command<'static> {
         )
         .arg(
             Arg::new("retries")
-                .takes_value(true)
+                .value_parser(value_parser!(u32))
+                .action(ArgAction::Set)
                 .long("retries")
                 .value_name("UNSIGNED INT")
                 .help("The number of retries to connect to the remote server")
@@ -165,7 +165,8 @@ pub fn get_command() -> Command<'static> {
         )
         .arg(
             Arg::new("timeout")
-                .takes_value(true)
+                .value_parser(value_parser!(u64))
+                .action(ArgAction::Set)
                 .short('t')
                 .long("timeout")
                 .value_name("UNSIGNED LONG")
@@ -180,7 +181,7 @@ pub fn get_command() -> Command<'static> {
             Arg::new("path")
                 .short('p')
                 .long("path")
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("STRING")
                 .help("The path of the URI")
                 .default_value("dns-query")
@@ -191,13 +192,15 @@ pub fn get_command() -> Command<'static> {
                 .short('g')
                 .long("get")
                 .help("Use the GET method for the HTTP/2.0 request")
+                .action(ArgAction::SetTrue)
                 .required(false),
         )
         .arg(
             Arg::new("cache-size")
+                .value_parser(value_parser!(usize))
                 .long("cache-size")
                 .short('c')
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("UNSIGNED LONG")
                 .help(
                     "The size of the private HTTP cache\n\
@@ -209,6 +212,7 @@ pub fn get_command() -> Command<'static> {
         )
         .arg(
             Arg::new("cache-fallback")
+                .action(ArgAction::SetTrue)
                 .long("cache-fallback")
                 .help("Use expired cache entries if no response is received from the server")
                 .required(false),
@@ -216,7 +220,7 @@ pub fn get_command() -> Command<'static> {
         .arg(
             Arg::new("client-auth-certs")
                 .long("client-auth-certs")
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("CERTSFILE")
                 .help(
                     "The path to the pem file, which contains the certificates for the client \
@@ -228,7 +232,7 @@ pub fn get_command() -> Command<'static> {
         .arg(
             Arg::new("client-auth-key")
                 .long("client-auth-key")
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_name("KEYFILE")
                 .help(
                     "The path to the pem file, which contains the key for the client \

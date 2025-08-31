@@ -1,14 +1,14 @@
 use super::{response_handler, Config, Host};
 use crate::{DohError, DohResult};
-use base64::{encode_config, URL_SAFE_NO_PAD};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use bytes::Bytes;
 use dns_message_parser::Dns;
 use h2::client::SendRequest;
 use http::Request;
-use rustls::ClientConfig;
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio_rustls::rustls::ClientConfig;
 
 pub(crate) struct Session {
     config: Config,
@@ -86,11 +86,7 @@ impl Session {
                 .body(())
                 .unwrap()
         } else {
-            let uri = format!(
-                "{}?dns={}",
-                config.uri,
-                encode_config(&data[..], URL_SAFE_NO_PAD)
-            );
+            let uri = format!("{}?dns={}", config.uri, URL_SAFE_NO_PAD.encode(&data[..]));
             Request::builder()
                 .method("GET")
                 .uri(uri)

@@ -1,5 +1,5 @@
-use rustls::ClientConfig;
 use std::sync::Arc;
+use tokio_rustls::rustls::ClientConfig;
 
 pub(super) struct Config {
     pub(super) domain: String,

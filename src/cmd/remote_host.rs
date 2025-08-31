@@ -2,14 +2,14 @@
 use crate::helper::load_root_store;
 use crate::RemoteHost;
 use clap::ArgMatches;
-#[cfg(feature = "http-proxy")]
-use rustls::ClientConfig;
 use std::io::Error as IoError;
 #[cfg(feature = "socks5")]
 use std::net::{IpAddr, SocketAddr};
 #[cfg(feature = "http-proxy")]
 use std::sync::Arc;
 use thiserror::Error as ThisError;
+#[cfg(feature = "http-proxy")]
+use tokio_rustls::rustls::ClientConfig;
 
 #[derive(Debug, ThisError)]
 pub enum RemoteHostError {
@@ -41,7 +41,7 @@ fn parse_host_port(host_port: &str) -> Result<(&str, u16), RemoteHostError> {
 }
 
 fn get_remote_host_port(arg_matches: &ArgMatches) -> Result<(String, u16), RemoteHostError> {
-    let remote_host_port = arg_matches.value_of("remote-host").unwrap();
+    let remote_host_port = arg_matches.get_one::<String>("remote-host").unwrap();
     let (remote_host, remote_port) = parse_host_port(remote_host_port)?;
     Ok((remote_host.to_owned(), remote_port))
 }
@@ -54,7 +54,7 @@ fn get_direct(arg_matches: &ArgMatches) -> Result<RemoteHost, RemoteHostError> {
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
 async fn get_proxy_host_port(arg_matches: &ArgMatches) -> Result<(String, u16), RemoteHostError> {
-    let proxy_host_port = arg_matches.value_of("proxy-host").unwrap();
+    let proxy_host_port = arg_matches.get_one::<String>("proxy-host").unwrap();
     let (proxy_host, proxy_port) = parse_host_port(proxy_host_port)?;
     Ok((proxy_host.to_owned(), proxy_port))
 }
@@ -63,7 +63,7 @@ async fn get_proxy_host_port(arg_matches: &ArgMatches) -> Result<(String, u16), 
 async fn get_proxy_remote_addrs(
     arg_matches: &ArgMatches,
 ) -> Result<Vec<SocketAddr>, RemoteHostError> {
-    let remote_host = arg_matches.value_of("remote-host").unwrap();
+    let remote_host = arg_matches.get_one::<String>("remote-host").unwrap();
     let (host, port) = parse_host_port(remote_host)?;
     match host.parse::<IpAddr>() {
         Ok(host) => {
@@ -82,7 +82,7 @@ async fn get_proxy_remote_addrs(
 fn get_proxy_credentials(
     arg_matches: &ArgMatches,
 ) -> Result<Option<(String, String)>, RemoteHostError> {
-    if let Some(proxy_credentials) = arg_matches.value_of("proxy-credentials") {
+    if let Some(proxy_credentials) = arg_matches.get_one::<String>("proxy-credentials") {
         let proxy_credentials_vec: Vec<&str> = proxy_credentials.splitn(2, ':').collect();
         if proxy_credentials_vec.len() == 2 {
             let username = proxy_credentials_vec[0].to_owned();
@@ -102,10 +102,9 @@ fn get_proxy_credentials(
 fn get_proxy_https_client_config(
     arg_matches: &ArgMatches,
 ) -> Result<ClientConfig, RemoteHostError> {
-    let https_cafile = arg_matches.value_of("proxy-https-cafile");
+    let https_cafile = arg_matches.get_one::<String>("proxy-https-cafile");
     let root_store = load_root_store(https_cafile)?;
     let mut config = ClientConfig::builder()
-        .with_safe_defaults()
         .with_root_certificates(root_store)
         .with_no_client_auth();
     config
@@ -115,20 +114,17 @@ fn get_proxy_https_client_config(
 }
 
 #[cfg(feature = "http-proxy")]
-fn get_proxy_https_domain(arg_matches: &ArgMatches) -> String {
-    arg_matches
-        .value_of("proxy-https-domain")
-        .unwrap()
-        .to_owned()
+fn get_proxy_https_domain(arg_matches: &ArgMatches) -> &String {
+    arg_matches.get_one::<String>("proxy-https-domain").unwrap()
 }
 
 #[cfg(any(feature = "socks5", feature = "http-proxy"))]
 async fn get_proxy(arg_matches: &ArgMatches) -> Result<RemoteHost, RemoteHostError> {
-    let proxy_scheme = arg_matches.value_of("proxy-scheme");
+    let proxy_scheme = arg_matches.get_one::<String>("proxy-scheme");
     if let Some(proxy_scheme) = proxy_scheme {
         let (proxy_host, proxy_port) = get_proxy_host_port(arg_matches).await?;
         let credentials = get_proxy_credentials(arg_matches)?;
-        match proxy_scheme {
+        match proxy_scheme.as_str() {
             #[cfg(feature = "socks5")]
             "socks5" => {
                 let remote_addrs = get_proxy_remote_addrs(arg_matches).await?;
@@ -174,7 +170,7 @@ async fn get_proxy(arg_matches: &ArgMatches) -> Result<RemoteHost, RemoteHostErr
                     remote_host,
                     remote_port,
                     https_client_config,
-                    https_domain,
+                    https_domain.clone(),
                 ))
             }
             scheme => Err(RemoteHostError::ProxyScheme(scheme.to_string())),

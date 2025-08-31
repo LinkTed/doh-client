@@ -30,25 +30,25 @@ native-certs = ["rustls-native-certs"]
 main-windows-service = ["windows-service", "winlog"]
 
 [dependencies]
-libc = "~0.2.137"
-base64 = "~0.13.1"
-log = "~0.4.17"
-env_logger = "~0.9.1"
-tokio-rustls = "~0.23.4"
-futures = "~0.3.25"
-h2 = "~0.3.15"
-http = "~0.2.8"
-rustls = "~0.20.7"
-rustls-pemfile = "~1.0.1"
-webpki = "~0.22.0"
-bytes = "~1.2.1"
-lru = "~0.8.1"
-dns-message-parser = "~0.7.0"
-lazy_static = "~1.4.0"
-thiserror = "~1.0.37"
+libc = "~0.2.175"
+base64 = "~0.22.1"
+log = "~0.4.27"
+env_logger = "~0.11.8"
+futures = "~0.3.31"
+h2 = "~0.4.12"
+http = "~1.3.1"
+lru = "~0.16.0"
+rustls = "~0.23.31"
+rustls-pki-types = "~1.12.0"
+rustls-pemfile = "~2.2.0"
+tokio-rustls = "~0.26.2"
+dns-message-parser = "~0.9.0"
+bytes = "~1.10.1"
+lazy_static = "~1.5.0"
+thiserror = "~2.0.16"
 
 [dependencies.clap]
-version = "~3.2.23"
+version = "~4.5.46"
 features = ["cargo"]
 
 [dependencies.async-http-proxy]
@@ -57,19 +57,19 @@ optional = true
 features = ["runtime-tokio", "basic-auth"]
 
 [dependencies.tokio-socks]
-version = "~0.5.1"
+version = "~0.5.2"
 optional = true
 
 [dependencies.tokio]
-version = "~1.20.2"
+version = "~1.47.1"
 features = ["rt-multi-thread", "net", "time", "macros"]
 
 [dependencies.rustls-native-certs]
-version = "~0.6.2"
+version = "~0.8.1"
 optional = true
 
 [dependencies.windows-service]
-version = "~0.5.0"
+version = "~0.8.0"
 optional = true
 
 [dependencies.winlog]
