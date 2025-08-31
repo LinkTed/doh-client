@@ -15,9 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install toolchain with rustfmt
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt
       - uses: actions/checkout@v4
       - name: Run rustfmt
@@ -39,9 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install toolchain with clippy
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: clippy
       - uses: actions/checkout@v4
       - name: Run clippy
@@ -56,9 +54,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Install toolchain with clippy
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: clippy
       - uses: actions/checkout@v4
       - name: Run clippy windows service
@@ -78,7 +75,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install toolchain ${{ matrix.rust_channel }} on ${{ matrix.os }}
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust_channel }}
       - uses: actions/checkout@v4
@@ -94,10 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Intall toolchain nightly on ubuntu-latest
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
+        uses: dtolnay/rust-toolchain@stable
       - uses: actions/checkout@v4
       - name: Run cargo test
         uses: actions-rs/cargo@v1
