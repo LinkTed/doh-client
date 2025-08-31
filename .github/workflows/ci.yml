@@ -77,25 +77,3 @@ jobs:
           command: test
           args: --no-default-features --features "${{ matrix.features }}"
 
-  code-coverage:
-    name: Job code coverage
-    needs: tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Intall toolchain nightly on ubuntu-latest
-        uses: dtolnay/rust-toolchain@stable
-      - uses: actions/checkout@v4
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-        env:
-          CARGO_INCREMENTAL: '0'
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-      - name: Run grcov
-        uses: actions-rs/grcov@v0.1
-      - name: Upload coverage
-        uses: codecov/codecov-action@v1
-        with:
-          file: ${{ steps.coverage.outputs.report }}
