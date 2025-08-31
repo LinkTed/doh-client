@@ -3,7 +3,7 @@ use rustls_pemfile::{certs, read_one, Item};
 use rustls_pki_types::{CertificateDer, PrivateKeyDer};
 use std::{
     fs::File,
-    io::{BufReader, Error as IoError, ErrorKind as IoErrorKind, Result as IoResult},
+    io::{BufReader, Error as IoError, Result as IoResult},
 };
 
 pub(super) fn load_certs(path: &str) -> IoResult<Vec<CertificateDer<'static>>> {
@@ -29,10 +29,10 @@ pub(super) fn load_private_key(path: &str) -> IoResult<PrivateKeyDer<'static>> {
         }
     }
 
-    Err(IoError::new(
-        IoErrorKind::Other,
-        format!("Could not found any private key: {}", path),
-    ))
+    Err(IoError::other(format!(
+        "Could not found any private key: {}",
+        path
+    )))
 }
 
 #[cfg(feature = "native-certs")]
@@ -67,10 +67,7 @@ pub(super) fn load_root_store(cafile: Option<&String>) -> IoResult<RootCertStore
     }
 
     if added == 0 {
-        Err(IoError::new(
-            IoErrorKind::Other,
-            "Could not add any certificates",
-        ))
+        Err(IoError::other("Could not add any certificates"))
     } else {
         if ignored != 0 {
             error!("Could not parse all certificates: {}", ignored);
