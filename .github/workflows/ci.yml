@@ -33,10 +33,11 @@ jobs:
           components: clippy
       - uses: actions/checkout@v4
       - name: Run clippy
-        uses: actions-rs/clippy-check@v1
+        uses: giraffate/clippy-action@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -- --deny warnings -A clippy::unknown-clippy-lints
+          reporter: 'github-pr-check'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clippy_flags: --deny warnings -A clippy::unknown-clippy-lints
 
   clippy-windows-service:
     name: Job clippy windows service
@@ -49,10 +50,11 @@ jobs:
           components: clippy
       - uses: actions/checkout@v4
       - name: Run clippy windows service
-        uses: actions-rs/clippy-check@v1
+        uses: giraffate/clippy-action@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --bin windows-service --features main-windows-service -- --deny warnings -A clippy::unknown-clippy-lints
+          reporter: 'github-pr-check'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clippy_flags: --bin windows-service --features main-windows-service -- --deny warnings -A clippy::unknown-clippy-lints
 
   tests:
     name: Job tests
