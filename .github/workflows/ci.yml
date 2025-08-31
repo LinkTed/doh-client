@@ -19,7 +19,7 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run rustfmt
         run: cargo fmt --all -- --check
 
@@ -27,7 +27,7 @@ jobs:
     name: Job audit
     runs-on: ubuntu-latest
     steps: 
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - name: Run audit
         uses: actions-rs/audit-check@v1
         with:
@@ -43,7 +43,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
         with:
@@ -60,7 +60,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run clippy windows service
         uses: actions-rs/clippy-check@v1
         with:
@@ -81,7 +81,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust_channel }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
@@ -98,7 +98,7 @@ jobs:
         with:
           toolchain: nightly
           override: true
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
