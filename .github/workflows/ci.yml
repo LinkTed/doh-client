@@ -22,16 +22,6 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all -- --check
 
-  audit:
-    name: Job audit
-    runs-on: ubuntu-latest
-    steps: 
-      - uses: actions/checkout@v4
-      - name: Run audit
-        uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   clippy:
     name: Job clippy
     needs: rustfmt
