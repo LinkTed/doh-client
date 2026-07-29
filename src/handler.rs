@@ -1,10 +1,8 @@
 use crate::context::Context;
-use crate::{Cache, DohError, DohResult};
+use crate::{DohError, DohResult};
 use bytes::Bytes;
-use dns_message_parser::question::Question;
-use dns_message_parser::Dns;
-use futures::lock::Mutex;
-use log::{debug, error, info};
+use dns_message_parser::{Dns, RCode};
+use log::{debug, error};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -88,7 +86,11 @@ pub async fn resolve_request(msg: Bytes, context: &Context) -> DohResult<Bytes> 
         }
     }
 
-    Err(DohError::CouldNotGetResponse(dns_request))
+    // Upstream failed: return SERVFAIL DNS response to client instead of dropping TCP connection
+    let mut servfail_resp = dns_request;
+    servfail_resp.flags.qr = true;
+    servfail_resp.flags.rcode = RCode::ServFail;
+    Ok(servfail_resp.encode()?.into())
 }
 
 pub async fn request_handler(msg: Bytes, addr: SocketAddr, context: &Context) -> DohResult<()> {
